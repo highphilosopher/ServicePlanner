@@ -74,6 +74,43 @@ docker run -p 8080:8080 \
   serviceplanner:latest
 ```
 
+## Automated Docker Publishing
+
+This repository includes a GitHub Actions workflow that automatically builds and publishes Docker images to Docker Hub when pull requests are merged to the main branch.
+
+### Setup Requirements
+
+To enable automated Docker publishing, you need to configure the following secrets in your GitHub repository:
+
+1. Go to your GitHub repository → Settings → Secrets and variables → Actions
+2. Add the following repository secrets:
+
+| Secret Name | Description |
+|-------------|-------------|
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (not password) |
+
+### Creating a Docker Hub Access Token
+
+1. Log in to [Docker Hub](https://hub.docker.com/)
+2. Go to Account Settings → Security
+3. Click "New Access Token"
+4. Give it a descriptive name (e.g., "GitHub Actions ServicePlanner")
+5. Copy the generated token and add it as `DOCKERHUB_TOKEN` secret
+
+### Workflow Behavior
+
+The GitHub Action will:
+- Trigger on pushes to `main` branch
+- Trigger on merged pull requests to `main` branch
+- Build multi-platform images (linux/amd64, linux/arm64)
+- Tag images with:
+  - `latest` (for main branch)
+  - Branch name
+  - Git SHA
+- Use GitHub Actions cache for faster builds
+- Push to `your-dockerhub-username/serviceplanner`
+
 ## Environment Variables
 
 | Variable | Description | Default |
