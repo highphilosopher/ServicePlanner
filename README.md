@@ -115,6 +115,7 @@ The GitHub Action will:
 - Removed Docker HEALTHCHECK dependency on `curl` (not available in .NET runtime images)
 - Fixed Song model initialization in database seeding to include all required properties
 - Updated Dockerfile to build from solution level to ensure proper assembly references on Linux
+- Downgraded Entity Framework Core packages from 9.0.5 to 8.0.11 to match .NET 8.0 compatibility
 - Ensured cross-platform compatibility for Linux-based GitHub Actions runners
 
 ## Environment Variables

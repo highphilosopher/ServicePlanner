@@ -2,6 +2,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
+# Set PATH to include dotnet tools
+ENV PATH="$PATH:/root/.dotnet/tools"
+
 # Copy solution and project files
 COPY ServicePlanner.sln ./
 COPY ServicePlanner/*.csproj ./ServicePlanner/
