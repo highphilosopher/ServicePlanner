@@ -1,0 +1,205 @@
+@page "/templates/create"
+@page "/templates/edit/{TemplateId:int}"
+@using ServicePlanner.Models
+@using ServicePlanner.Services
+@inject ServiceTemplateService TemplateService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEdit ? "Edit Template" : "Create Template")</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>@(IsEdit ? "Edit Template" : "Create New Template")</h1>
+                <button class="btn btn-secondary" @onclick="Cancel">
+                    <i class="bi bi-arrow-left"></i> Back to Templates
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <EditForm Model="template" OnValidSubmit="SaveTemplate">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Template Name</label>
+                                <InputText id="name" class="form-control" @bind-Value="template.Name" placeholder="e.g., Sunday Morning Service" />
+                                <ValidationMessage For="@(() => template.Name)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="description" class="form-label">Description</label>
+                                <InputText id="description" class="form-control" @bind-Value="template.Description" placeholder="Brief description of this template" />
+                                <ValidationMessage For="@(() => template.Description)" />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>Service Events</h4>
+                                <button type="button" class="btn btn-success" @onclick="AddEvent">
+                                    <i class="bi bi-plus"></i> Add Event
+                                </button>
+                            </div>
+
+                            @if (template.Events.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Order</th>
+                                                <th>Type</th>
+                                                <th>Title</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var evt in template.Events.OrderBy(e => e.Order))
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <input type="number" class="form-control form-control-sm" style="width: 80px;" 
+                                                               @bind="evt.Order" @bind:after="ReorderEvents" min="1" />
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm" @bind="evt.Type">
+                                                            @foreach (var eventType in Enum.GetValues<EventType>())
+                                                            {
+                                                                <option value="@eventType">@eventType</option>
+                                                            }
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control form-control-sm" @bind="evt.Title" 
+                                                               placeholder="Event title" />
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                @onclick="() => RemoveEvent(evt)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info">
+                                    <p class="mb-0">No events added yet. Click "Add Event" to start building your service template.</p>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> @(IsEdit ? "Update Template" : "Create Template")
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                                Cancel
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? TemplateId { get; set; }
+
+    private ServiceTemplate template = new ServiceTemplate();
+    private bool IsEdit => TemplateId.HasValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEdit && TemplateId.HasValue)
+        {
+            var existingTemplate = await TemplateService.GetTemplateByIdAsync(TemplateId.Value);
+            if (existingTemplate != null)
+            {
+                template = existingTemplate;
+            }
+            else
+            {
+                Navigation.NavigateTo("/templates");
+            }
+        }
+        else
+        {
+            template = new ServiceTemplate
+            {
+                Name = "",
+                Description = "",
+                Events = new List<ServiceEvent>()
+            };
+        }
+    }
+
+    private void AddEvent()
+    {
+        var newOrder = template.Events.Any() ? template.Events.Max(e => e.Order) + 1 : 1;
+        template.Events.Add(new ServiceEvent
+        {
+            Type = EventType.Speaker,
+            Title = "",
+            Order = newOrder,
+            TemplateId = template.Id
+        });
+    }
+
+    private void RemoveEvent(ServiceEvent evt)
+    {
+        template.Events.Remove(evt);
+        ReorderEvents();
+    }
+
+    private void ReorderEvents()
+    {
+        var orderedEvents = template.Events.OrderBy(e => e.Order).ToList();
+        for (int i = 0; i < orderedEvents.Count; i++)
+        {
+            orderedEvents[i].Order = i + 1;
+        }
+        StateHasChanged();
+    }
+
+    private async Task SaveTemplate()
+    {
+        if (string.IsNullOrWhiteSpace(template.Name))
+        {
+            return;
+        }
+
+        try
+        {
+            if (IsEdit)
+            {
+                await TemplateService.UpdateTemplateAsync(template);
+            }
+            else
+            {
+                await TemplateService.CreateTemplateAsync(template);
+            }
+
+            Navigation.NavigateTo("/templates");
+        }
+        catch (Exception ex)
+        {
+            // In a real application, you would handle this error appropriately
+            Console.WriteLine($"Error saving template: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/templates");
+    }
+}

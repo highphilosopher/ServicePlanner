@@ -1,0 +1,199 @@
+@page "/import-songs"
+@using ServicePlanner.Services
+@using ServicePlanner.Models
+@inject SongService SongService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Import Songs</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Import Songs from CSV</h1>
+                <a href="/songs" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Songs
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">CSV File Upload</h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @successMessage
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Select CSV File</label>
+                        <InputFile id="csvFile" class="form-control" OnChange="HandleFileSelected" accept=".csv" />
+                        <div class="form-text">
+                            Select a CSV file containing song data. The file should include headers for the song fields.
+                        </div>
+                    </div>
+
+                    @if (isUploading)
+                    {
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span>Importing songs...</span>
+                        </div>
+                    }
+                    else if (selectedFile != null)
+                    {
+                        <div class="mb-3">
+                            <strong>Selected file:</strong> @selectedFile.Name (@selectedFile.Size bytes)
+                        </div>
+                        <button class="btn btn-primary" @onclick="ImportSongsFromFile" disabled="@isUploading">
+                            <i class="bi bi-upload"></i> Import Songs
+                        </button>
+                    }
+                </div>
+            </div>
+
+            @if (importedSongs.Any())
+            {
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Imported Songs (@importedSongs.Count)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Song Name</th>
+                                        <th>Artist</th>
+                                        <th>Key</th>
+                                        <th>Category</th>
+                                        <th>Speed</th>
+                                        <th>Seasonal</th>
+                                        <th>Publisher</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var song in importedSongs)
+                                    {
+                                        <tr>
+                                            <td>@song.SongName</td>
+                                            <td>@song.Artist</td>
+                                            <td>@song.Key</td>
+                                            <td>@song.Category</td>
+                                            <td>@song.Speed</td>
+                                            <td>
+                                                @if (song.Seasonal)
+                                                {
+                                                    <span class="badge bg-warning">Seasonal</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Regular</span>
+                                                }
+                                            </td>
+                                            <td>@song.Publisher</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">CSV Format Guide</h5>
+                </div>
+                <div class="card-body">
+                    <p>Your CSV file should include a header row with the following supported column names:</p>
+                    <ul>
+                        <li><strong>SongName</strong> or <strong>Song Name</strong> or <strong>Name</strong> - The name of the song (required)</li>
+                        <li><strong>Artist</strong> or <strong>Author</strong> - The artist or composer</li>
+                        <li><strong>Key</strong> - Musical key (e.g., C, G, Am)</li>
+                        <li><strong>SongSelectId</strong> or <strong>SongSelect ID</strong> or <strong>CCLI</strong> - CCLI or SongSelect ID</li>
+                        <li><strong>Category</strong> or <strong>Genre</strong> - Song category (e.g., Hymn, Contemporary)</li>
+                        <li><strong>Speed</strong> or <strong>Tempo</strong> - Song tempo (e.g., Slow, Medium, Fast)</li>
+                        <li><strong>Publisher</strong> - Publishing company</li>
+                        <li><strong>Seasonal</strong> - true/false for seasonal songs</li>
+                        <li><strong>Disabled</strong> - true/false to disable the song</li>
+                        <li><strong>Notes</strong> - Additional notes about the song</li>
+                    </ul>
+                    
+                    <h6>Example CSV:</h6>
+                    <pre class="bg-light p-2 rounded">SongName,Artist,Key,Category,Speed,Seasonal,Publisher
+"Amazing Grace","Traditional","G","Hymn","Slow","false","Public Domain"
+"Way Maker","Sinach","E","Contemporary","Medium","false","Integrity Music"</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IBrowserFile? selectedFile;
+    private bool isUploading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private List<Song> importedSongs = new();
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        importedSongs.Clear();
+        StateHasChanged();
+    }
+
+    private async Task ImportSongsFromFile()
+    {
+        if (selectedFile == null)
+        {
+            errorMessage = "Please select a CSV file first.";
+            return;
+        }
+
+        isUploading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        importedSongs.Clear();
+
+        try
+        {
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit
+            importedSongs = await SongService.ImportSongsFromCsvAsync(stream);
+            
+            if (importedSongs.Any())
+            {
+                successMessage = $"Successfully imported {importedSongs.Count} songs!";
+            }
+            else
+            {
+                errorMessage = "No songs were imported. Please check your CSV format.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error importing songs: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,373 @@
+@page "/services/view/{ServiceId:int}"
+@using ServicePlanner.Models
+@using ServicePlanner.Services
+@inject ServiceService ServiceService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>View Service</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Service Details</h1>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-primary" @onclick="EditService">
+                        <i class="bi bi-pencil"></i> Edit Service
+                    </button>
+                    <button class="btn btn-secondary" @onclick="BackToServices">
+                        <i class="bi bi-arrow-left"></i> Back to Services
+                    </button>
+                </div>
+            </div>
+
+            @if (service == null)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Service Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <strong>Service Name:</strong>
+                                        <p>@service.Name</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Service Date:</strong>
+                                        <p>@service.ServiceDate.ToString("dddd, MMMM dd, yyyy")</p>
+                                    </div>
+                                </div>
+                                @if (service.Template != null)
+                                {
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <strong>Template:</strong>
+                                            <p>@service.Template.Name - @service.Template.Description</p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Service Program</h5>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-primary" @onclick="CopyToClipboard" title="Copy to Clipboard">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                    <button class="btn btn-outline-secondary" @onclick="PrintProgram" title="Print Program">
+                                        <i class="bi bi-printer"></i> Print
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                @if (service.EventInstances.Any())
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Order</th>
+                                                    <th>Type</th>
+                                                    <th>Event</th>
+                                                    <th>Details</th>
+                                                    <th>Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var instance in service.EventInstances.OrderBy(e => e.ServiceEvent?.Order))
+                                                {
+                                                    <tr>
+                                                        <td>@instance.ServiceEvent?.Order</td>
+                                                        <td>
+                                                            <span class="badge bg-@GetEventTypeBadgeColor(instance.ServiceEvent?.Type)">
+                                                                @instance.ServiceEvent?.Type
+                                                            </span>
+                                                        </td>
+                                                        <td><strong>@instance.ServiceEvent?.Title</strong></td>
+                                                        <td>
+                                                            @if (!string.IsNullOrEmpty(instance.PersonName))
+                                                            {
+                                                                <div><i class="bi bi-person"></i> @instance.PersonName</div>
+                                                            }
+                                                            @if (!string.IsNullOrEmpty(instance.SongTitle))
+                                                            {
+                                                                <div><i class="bi bi-music-note"></i> @instance.SongTitle</div>
+                                                            }
+                                                            @if (string.IsNullOrEmpty(instance.PersonName) && string.IsNullOrEmpty(instance.SongTitle))
+                                                            {
+                                                                <span class="text-muted">Not assigned</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (!string.IsNullOrEmpty(instance.Notes))
+                                                            {
+                                                                <small class="text-muted">@instance.Notes</small>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info">
+                                        <p class="mb-0">No events found for this service.</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Quick Stats</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <strong>Total Events:</strong>
+                                    <span class="badge bg-primary ms-2">@service.EventInstances.Count</span>
+                                </div>
+                                
+                                @{
+                                    var eventTypeCounts = service.EventInstances
+                                        .Where(e => e.ServiceEvent != null)
+                                        .GroupBy(e => e.ServiceEvent!.Type)
+                                        .ToDictionary(g => g.Key, g => g.Count());
+                                }
+
+                                @foreach (var eventType in Enum.GetValues<EventType>())
+                                {
+                                    var count = eventTypeCounts.GetValueOrDefault(eventType, 0);
+                                    if (count > 0)
+                                    {
+                                        <div class="mb-2">
+                                            <span class="badge bg-@GetEventTypeBadgeColor(eventType) me-2">@eventType</span>
+                                            <span>@count</span>
+                                        </div>
+                                    }
+                                }
+
+                                <hr />
+
+                                <div class="mb-2">
+                                    <strong>Assigned:</strong>
+                                    <span class="badge bg-success ms-2">
+                                        @service.EventInstances.Count(e => !string.IsNullOrEmpty(e.PersonName) || !string.IsNullOrEmpty(e.SongTitle))
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Unassigned:</strong>
+                                    <span class="badge bg-warning ms-2">
+                                        @service.EventInstances.Count(e => string.IsNullOrEmpty(e.PersonName) && string.IsNullOrEmpty(e.SongTitle))
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (service.Template != null)
+                        {
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Template Info</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>@service.Template.Name</strong></p>
+                                    <p class="text-muted small">@service.Template.Description</p>
+                                    <p class="text-muted small">
+                                        Created: @service.Template.CreatedDate.ToString("MMM dd, yyyy")
+                                    </p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int ServiceId { get; set; }
+
+    private Service? service;
+
+    protected override async Task OnInitializedAsync()
+    {
+        service = await ServiceService.GetServiceByIdAsync(ServiceId);
+        if (service == null)
+        {
+            Navigation.NavigateTo("/services");
+        }
+    }
+
+    private string GetEventTypeBadgeColor(EventType? eventType)
+    {
+        return eventType switch
+        {
+            EventType.Speaker => "primary",
+            EventType.Prayer => "success",
+            EventType.Communion => "warning",
+            EventType.Baptism => "info",
+            EventType.Song => "secondary",
+            _ => "light"
+        };
+    }
+
+    private void EditService()
+    {
+        Navigation.NavigateTo($"/services/edit/{ServiceId}");
+    }
+
+    private void BackToServices()
+    {
+        Navigation.NavigateTo("/services");
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (service == null) return;
+
+        var programText = GenerateServiceProgramText();
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", programText);
+    }
+
+    private async Task PrintProgram()
+    {
+        if (service == null) return;
+
+        var printContent = GeneratePrintableProgram();
+        await JSRuntime.InvokeVoidAsync("printServiceProgram", printContent);
+    }
+
+    private string GenerateServiceProgramText()
+    {
+        if (service == null) return "";
+
+        var text = new System.Text.StringBuilder();
+        text.AppendLine($"{service.Name}");
+        text.AppendLine($"{service.ServiceDate:dddd, MMMM dd, yyyy}");
+        text.AppendLine();
+
+        if (service.EventInstances.Any())
+        {
+            foreach (var instance in service.EventInstances.OrderBy(e => e.ServiceEvent?.Order))
+            {
+                text.AppendLine($"{instance.ServiceEvent?.Order}. {instance.ServiceEvent?.Title}");
+                
+                if (!string.IsNullOrEmpty(instance.PersonName))
+                {
+                    text.AppendLine($"   Person: {instance.PersonName}");
+                }
+                
+                if (!string.IsNullOrEmpty(instance.SongTitle))
+                {
+                    text.AppendLine($"   Song: {instance.SongTitle}");
+                }
+                
+                if (!string.IsNullOrEmpty(instance.Notes))
+                {
+                    text.AppendLine($"   Notes: {instance.Notes}");
+                }
+                
+                text.AppendLine();
+            }
+        }
+
+        return text.ToString();
+    }
+
+    private string GeneratePrintableProgram()
+    {
+        if (service == null) return "";
+
+        var html = new System.Text.StringBuilder();
+        html.AppendLine("<!DOCTYPE html>");
+        html.AppendLine("<html>");
+        html.AppendLine("<head>");
+        html.AppendLine("<title>Service Program</title>");
+        html.AppendLine("<style>");
+        html.AppendLine("body { font-family: Arial, sans-serif; margin: 20px; }");
+        html.AppendLine("h1 { text-align: center; margin-bottom: 10px; }");
+        html.AppendLine("h2 { text-align: center; margin-bottom: 30px; color: #666; }");
+        html.AppendLine("table { width: 100%; border-collapse: collapse; margin-top: 20px; }");
+        html.AppendLine("th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }");
+        html.AppendLine("th { background-color: #f8f9fa; font-weight: bold; }");
+        html.AppendLine("tr:nth-child(even) { background-color: #f8f9fa; }");
+        html.AppendLine(".event-type { font-weight: bold; text-transform: uppercase; font-size: 0.9em; }");
+        html.AppendLine(".notes { font-style: italic; color: #666; font-size: 0.9em; }");
+        html.AppendLine("@media print { body { margin: 0; } }");
+        html.AppendLine("</style>");
+        html.AppendLine("</head>");
+        html.AppendLine("<body>");
+        
+        html.AppendLine($"<h1>{service.Name}</h1>");
+        html.AppendLine($"<h2>{service.ServiceDate:dddd, MMMM dd, yyyy}</h2>");
+
+        if (service.EventInstances.Any())
+        {
+            html.AppendLine("<table>");
+            html.AppendLine("<thead>");
+            html.AppendLine("<tr>");
+            html.AppendLine("<th>Order</th>");
+            html.AppendLine("<th>Type</th>");
+            html.AppendLine("<th>Event</th>");
+            html.AppendLine("<th>Details</th>");
+            html.AppendLine("<th>Notes</th>");
+            html.AppendLine("</tr>");
+            html.AppendLine("</thead>");
+            html.AppendLine("<tbody>");
+
+            foreach (var instance in service.EventInstances.OrderBy(e => e.ServiceEvent?.Order))
+            {
+                html.AppendLine("<tr>");
+                html.AppendLine($"<td>{instance.ServiceEvent?.Order}</td>");
+                html.AppendLine($"<td><span class=\"event-type\">{instance.ServiceEvent?.Type}</span></td>");
+                html.AppendLine($"<td><strong>{instance.ServiceEvent?.Title}</strong></td>");
+                
+                html.Append("<td>");
+                if (!string.IsNullOrEmpty(instance.PersonName))
+                {
+                    html.Append($"Person: {instance.PersonName}<br>");
+                }
+                if (!string.IsNullOrEmpty(instance.SongTitle))
+                {
+                    html.Append($"Song: {instance.SongTitle}");
+                }
+                if (string.IsNullOrEmpty(instance.PersonName) && string.IsNullOrEmpty(instance.SongTitle))
+                {
+                    html.Append("Not assigned");
+                }
+                html.AppendLine("</td>");
+                
+                html.AppendLine($"<td class=\"notes\">{instance.Notes}</td>");
+                html.AppendLine("</tr>");
+            }
+
+            html.AppendLine("</tbody>");
+            html.AppendLine("</table>");
+        }
+
+        html.AppendLine("</body>");
+        html.AppendLine("</html>");
+
+        return html.ToString();
+    }
+}

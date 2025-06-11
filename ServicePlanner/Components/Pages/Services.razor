@@ -1,0 +1,174 @@
+@page "/services"
+@using ServicePlanner.Models
+@using ServicePlanner.Services
+@inject ServiceService ServiceService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Services</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Services</h1>
+                <AuthorizeView>
+                    <Authorized>
+                        <button class="btn btn-primary" @onclick="CreateNewService">
+                            <i class="bi bi-plus-circle"></i> Create New Service
+                        </button>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label">From Date</label>
+                    <input type="date" id="startDate" class="form-control" @bind="startDate" @bind:after="FilterServices" />
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label">To Date</label>
+                    <input type="date" id="endDate" class="form-control" @bind="endDate" @bind:after="FilterServices" />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary" @onclick="ClearDateFilter">
+                        Clear Filter
+                    </button>
+                </div>
+            </div>
+
+            @if (services == null)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (!services.Any())
+            {
+                <div class="alert alert-info">
+                    <h4>No Services Found</h4>
+                    <p>You haven't created any services yet. Click "Create New Service" to get started.</p>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var service in services.OrderBy(s => s.ServiceDate))
+                    {
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">@service.Name</h5>
+                                    <p class="card-text">
+                                        <strong>Date:</strong> @service.ServiceDate.ToString("dddd, MMMM dd, yyyy")
+                                    </p>
+                                    @if (service.Template != null)
+                                    {
+                                        <p class="card-text">
+                                            <strong>Template:</strong> @service.Template.Name
+                                        </p>
+                                    }
+                                    <p class="text-muted small">
+                                        Events: @service.EventInstances.Count
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <AuthorizeView>
+                                        <Authorized>
+                                            <div class="btn-group w-100" role="group">
+                                                <button class="btn btn-outline-primary" @onclick="() => EditService(service.Id)">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </button>
+                                                <button class="btn btn-outline-info" @onclick="() => ViewService(service.Id)">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                                <button class="btn btn-outline-danger" @onclick="() => DeleteService(service.Id)">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </button>
+                                            </div>
+                                        </Authorized>
+                                        <NotAuthorized>
+                                            <div class="btn-group w-100" role="group">
+                                                <button class="btn btn-outline-info w-100" @onclick="() => ViewService(service.Id)">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                            </div>
+                                        </NotAuthorized>
+                                    </AuthorizeView>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Service>? services;
+    private DateTime? startDate;
+    private DateTime? endDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServices();
+    }
+
+    private async Task LoadServices()
+    {
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            services = await ServiceService.GetServicesByDateRangeAsync(startDate.Value, endDate.Value);
+        }
+        else
+        {
+            services = await ServiceService.GetAllServicesAsync();
+        }
+    }
+
+    private async Task FilterServices()
+    {
+        await LoadServices();
+    }
+
+    private async Task ClearDateFilter()
+    {
+        startDate = null;
+        endDate = null;
+        await LoadServices();
+    }
+
+    private void CreateNewService()
+    {
+        Navigation.NavigateTo("/services/create");
+    }
+
+    private void EditService(int serviceId)
+    {
+        Navigation.NavigateTo($"/services/edit/{serviceId}");
+    }
+
+    private void ViewService(int serviceId)
+    {
+        Navigation.NavigateTo($"/services/view/{serviceId}");
+    }
+
+    private async Task DeleteService(int serviceId)
+    {
+        if (await ConfirmDelete())
+        {
+            await ServiceService.DeleteServiceAsync(serviceId);
+            await LoadServices();
+        }
+    }
+
+    private async Task<bool> ConfirmDelete()
+    {
+        // In a real application, you might use a modal dialog or JavaScript confirm
+        // For now, we'll just return true
+        return true;
+    }
+}

@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="ServicePlanner.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+</head>
+
+<body>
+    <CascadingAuthenticationState>
+        <Routes />
+    </CascadingAuthenticationState>
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        window.printServiceProgram = (htmlContent) => {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        };
+
+        window.loginUser = async (loginData) => {
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: loginData
+                });
+                
+                if (response.ok) {
+                    return await response.text();
+                } else {
+                    return JSON.stringify({ success: false, error: 'Network error occurred.' });
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                return JSON.stringify({ success: false, error: 'An error occurred during login.' });
+            }
+        };
+    </script>
+</body>
+
+</html>

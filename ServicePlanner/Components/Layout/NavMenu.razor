@@ -1,0 +1,106 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="">ServicePlanner</a>
+        
+        <div class="d-flex align-items-center">
+            <AuthorizeView>
+                <Authorized>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> @GetUserDisplayName(context.User)
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/change-password"><i class="bi bi-key"></i> Change Password</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button type="button" class="dropdown-item" @onclick="Logout" style="border: none; background: none; width: 100%; text-align: left;">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="/login" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="templates">
+                <span class="bi bi-file-earmark-text-nav-menu" aria-hidden="true"></span> Templates
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="services">
+                <span class="bi bi-calendar-event-nav-menu" aria-hidden="true"></span> Services
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="songs">
+                <span class="bi bi-music-note-list-nav-menu" aria-hidden="true"></span> Songs
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="import-songs">
+                        <span class="bi bi-upload-nav-menu" aria-hidden="true"></span> Import Songs
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <hr class="nav-divider" />
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/users">
+                        <span class="bi bi-people-nav-menu" aria-hidden="true"></span> User Management
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    private string GetUserDisplayName(ClaimsPrincipal user)
+    {
+        var email = user.Identity?.Name;
+        if (!string.IsNullOrEmpty(email))
+        {
+            // Extract name part from email (before @)
+            var atIndex = email.IndexOf('@');
+            return atIndex > 0 ? email.Substring(0, atIndex) : email;
+        }
+        return "User";
+    }
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("/logout");
+    }
+}

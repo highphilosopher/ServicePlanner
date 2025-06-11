@@ -1,0 +1,402 @@
+@page "/admin/users"
+@using Microsoft.AspNetCore.Authorization
+@using ServicePlanner.Models
+@using ServicePlanner.Services
+@inject UserService UserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>User Management - ServicePlanner</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>User Management</h2>
+                <button class="btn btn-primary" @onclick="ShowCreateUserModal">
+                    <i class="bi bi-person-plus"></i> Create New User
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @successMessage
+                    <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-body">
+                    @if (users == null)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (!users.Any())
+                    {
+                        <div class="text-center text-muted">
+                            <p>No users found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Last Login</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in users)
+                                    {
+                                        <tr>
+                                            <td>@user.FullName</td>
+                                            <td>@user.Email</td>
+                                            <td>
+                                                <span class="badge @(user.Role == UserRole.Admin ? "bg-danger" : "bg-primary")">
+                                                    @user.Role
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (user.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                    @if (user.IsFirstLogin)
+                                                    {
+                                                        <span class="badge bg-warning text-dark ms-1">First Login</span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>@user.CreatedDate.ToString("MM/dd/yyyy")</td>
+                                            <td>@(user.LastLoginDate?.ToString("MM/dd/yyyy") ?? "Never")</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-primary" @onclick="() => EditUser(user)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" @onclick="() => ResetUserPassword(user)">
+                                                        <i class="bi bi-key"></i>
+                                                    </button>
+                                                    @if (user.IsActive)
+                                                    {
+                                                        <button class="btn btn-outline-danger" @onclick="() => DeactivateUser(user)">
+                                                            <i class="bi bi-person-x"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div class="modal fade @(showUserModal ? "show" : "")" style="display: @(showUserModal ? "block" : "none")" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@(isEditMode ? "Edit User" : "Create New User")</h5>
+                <button type="button" class="btn-close" @onclick="CloseUserModal"></button>
+            </div>
+            <EditForm Model="userModel" OnValidSubmit="SaveUser">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="firstName" class="form-label">First Name</label>
+                        <InputText @bind-Value="userModel.FirstName" class="form-control" id="firstName" />
+                        <ValidationMessage For="() => userModel.FirstName" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="lastName" class="form-label">Last Name</label>
+                        <InputText @bind-Value="userModel.LastName" class="form-control" id="lastName" />
+                        <ValidationMessage For="() => userModel.LastName" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <InputText @bind-Value="userModel.Email" class="form-control" id="email" />
+                        <ValidationMessage For="() => userModel.Email" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <InputSelect @bind-Value="userModel.Role" class="form-select" id="role">
+                            <option value="@UserRole.User">User</option>
+                            <option value="@UserRole.Admin">Admin</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => userModel.Role" class="text-danger" />
+                    </div>
+
+                    @if (!isEditMode)
+                    {
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Temporary Password</label>
+                            <InputText @bind-Value="userModel.Password" type="password" class="form-control" id="password" />
+                            <ValidationMessage For="() => userModel.Password" class="text-danger" />
+                            <div class="form-text">User will be required to change this password on first login.</div>
+                        </div>
+                    }
+
+                    @if (isEditMode)
+                    {
+                        <div class="mb-3 form-check">
+                            <InputCheckbox @bind-Value="userModel.IsActive" class="form-check-input" id="isActive" />
+                            <label class="form-check-label" for="isActive">
+                                Active
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseUserModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        @(isEditMode ? "Update User" : "Create User")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@if (showUserModal)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<User>? users;
+    private UserModel userModel = new();
+    private bool showUserModal = false;
+    private bool isEditMode = false;
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            users = await UserService.GetAllUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load users.";
+            Console.WriteLine($"Load users error: {ex.Message}");
+        }
+    }
+
+    private void ShowCreateUserModal()
+    {
+        userModel = new UserModel();
+        isEditMode = false;
+        showUserModal = true;
+    }
+
+    private void EditUser(User user)
+    {
+        userModel = new UserModel
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email ?? string.Empty,
+            Role = user.Role,
+            IsActive = user.IsActive
+        };
+        isEditMode = true;
+        showUserModal = true;
+    }
+
+    private void CloseUserModal()
+    {
+        showUserModal = false;
+        userModel = new UserModel();
+        errorMessage = string.Empty;
+    }
+
+    private async Task SaveUser()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (isEditMode)
+            {
+                var user = await UserService.GetUserByIdAsync(userModel.Id);
+                if (user != null)
+                {
+                    user.FirstName = userModel.FirstName;
+                    user.LastName = userModel.LastName;
+                    user.Email = userModel.Email;
+                    user.Role = userModel.Role;
+                    user.IsActive = userModel.IsActive;
+
+                    var result = await UserService.UpdateUserAsync(user);
+                    if (result.Succeeded)
+                    {
+                        successMessage = "User updated successfully.";
+                        CloseUserModal();
+                        await LoadUsers();
+                    }
+                    else
+                    {
+                        errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                    }
+                }
+            }
+            else
+            {
+                var user = new User
+                {
+                    FirstName = userModel.FirstName,
+                    LastName = userModel.LastName,
+                    Email = userModel.Email,
+                    Role = userModel.Role,
+                    IsActive = true
+                };
+
+                var result = await UserService.CreateUserAsync(user, userModel.Password);
+                if (result.Succeeded)
+                {
+                    successMessage = "User created successfully.";
+                    CloseUserModal();
+                    await LoadUsers();
+                }
+                else
+                {
+                    errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while saving the user.";
+            Console.WriteLine($"Save user error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ResetUserPassword(User user)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Reset password for {user.FullName}? They will need to change it on next login."))
+        {
+            try
+            {
+                var tempPassword = "TempPassword123!";
+                var result = await UserService.ResetPasswordAsync(user, tempPassword);
+                if (result.Succeeded)
+                {
+                    user.IsFirstLogin = true;
+                    await UserService.UpdateUserAsync(user);
+                    successMessage = $"Password reset for {user.FullName}. Temporary password: {tempPassword}";
+                    await LoadUsers();
+                }
+                else
+                {
+                    errorMessage = "Failed to reset password.";
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = "An error occurred while resetting the password.";
+                Console.WriteLine($"Reset password error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task DeactivateUser(User user)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Deactivate {user.FullName}? They will no longer be able to log in."))
+        {
+            try
+            {
+                var result = await UserService.DeactivateUserAsync(user.Id);
+                if (result.Succeeded)
+                {
+                    successMessage = $"{user.FullName} has been deactivated.";
+                    await LoadUsers();
+                }
+                else
+                {
+                    errorMessage = "Failed to deactivate user.";
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = "An error occurred while deactivating the user.";
+                Console.WriteLine($"Deactivate user error: {ex.Message}");
+            }
+        }
+    }
+
+    public class UserModel
+    {
+        public string Id { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "First name is required")]
+        [StringLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        [StringLength(100, ErrorMessage = "Last name cannot exceed 100 characters")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Role is required")]
+        public UserRole Role { get; set; } = UserRole.User;
+
+        [Required(ErrorMessage = "Password is required")]
+        [StringLength(100, ErrorMessage = "Password must be at least {2} characters long.", MinimumLength = 8)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+    }
+}

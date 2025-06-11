@@ -1,0 +1,120 @@
+﻿@page "/"
+@using ServicePlanner.Services
+@inject ServiceTemplateService TemplateService
+@inject ServiceService ServiceService
+@inject SongService SongService
+@rendermode InteractiveServer
+
+<PageTitle>Home - Service Planner</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+                <h1 class="display-4">Welcome to Service Planner</h1>
+                <p class="lead">Plan and organize your church services with ease. Create templates, schedule services, and manage your song database all in one place.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-text display-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Service Templates</h5>
+                    <p class="card-text">Create reusable templates for different types of services with customizable event slots.</p>
+                    @if (templateCount.HasValue)
+                    {
+                        <p class="text-muted">@templateCount templates created</p>
+                    }
+                    <a href="/templates" class="btn btn-primary">Manage Templates</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-event display-1 text-success mb-3"></i>
+                    <h5 class="card-title">Services</h5>
+                    <p class="card-text">Schedule specific services based on your templates and assign people and songs to each event.</p>
+                    @if (serviceCount.HasValue)
+                    {
+                        <p class="text-muted">@serviceCount services scheduled</p>
+                    }
+                    <a href="/services" class="btn btn-success">Manage Services</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-music-note-list display-1 text-info mb-3"></i>
+                    <h5 class="card-title">Song Database</h5>
+                    <p class="card-text">Maintain a comprehensive database of songs that can be easily selected for your services.</p>
+                    @if (songCount.HasValue)
+                    {
+                        <p class="text-muted">@songCount songs in database</p>
+                    }
+                    <a href="/songs" class="btn btn-info">Manage Songs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Getting Started</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>1. Create Service Templates</h6>
+                            <p>Start by creating templates for your different service types (Sunday Morning, Evening Service, etc.). Add events like prayers, songs, communion, and speaking slots.</p>
+                            
+                            <h6>2. Build Your Song Database</h6>
+                            <p>Add songs to your database with details like artist, category, and notes to make them easy to find and select.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>3. Schedule Services</h6>
+                            <p>Create specific services based on your templates, assign dates, and fill in the details like speaker names and song selections.</p>
+                            
+                            <h6>4. Manage and Update</h6>
+                            <p>Easily edit templates, update service details, and maintain your song database as your needs change.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int? templateCount;
+    private int? serviceCount;
+    private int? songCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var templates = await TemplateService.GetAllTemplatesAsync();
+            templateCount = templates.Count;
+
+            var services = await ServiceService.GetAllServicesAsync();
+            serviceCount = services.Count;
+
+            var songs = await SongService.GetAllSongsAsync();
+            songCount = songs.Count;
+        }
+        catch (Exception ex)
+        {
+            // Handle any errors gracefully
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+    }
+}
