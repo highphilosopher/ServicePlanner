@@ -13,8 +13,20 @@ COPY ServicePlanner/*.csproj ./ServicePlanner/
 # Restore dependencies
 RUN dotnet restore ServicePlanner.sln
 
-# Copy all source code
-COPY ServicePlanner/ ./ServicePlanner/
+# Copy all source code explicitly
+COPY ServicePlanner/Components/ ./ServicePlanner/Components/
+COPY ServicePlanner/Data/ ./ServicePlanner/Data/
+COPY ServicePlanner/Migrations/ ./ServicePlanner/Migrations/
+COPY ServicePlanner/Models/ ./ServicePlanner/Models/
+COPY ServicePlanner/Properties/ ./ServicePlanner/Properties/
+COPY ServicePlanner/Services/ ./ServicePlanner/Services/
+COPY ServicePlanner/wwwroot/ ./ServicePlanner/wwwroot/
+COPY ServicePlanner/*.cs ./ServicePlanner/
+COPY ServicePlanner/*.json ./ServicePlanner/
+
+# Verify the Data directory was copied (for debugging)
+RUN ls -la ./ServicePlanner/
+RUN ls -la ./ServicePlanner/Data/
 
 # Build the application
 RUN dotnet build ServicePlanner.sln -c Release
