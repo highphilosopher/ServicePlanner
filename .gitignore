@@ -384,5 +384,4 @@ FodyWeavers.xsd
 # macOS
 .DS_Store
 
-# Data directory for containerized database
-data/
+
