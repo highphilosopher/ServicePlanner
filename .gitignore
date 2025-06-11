@@ -378,8 +378,8 @@ FodyWeavers.xsd
 .env.test.local
 .env.production.local
 
-# Docker
-.dockerignore
+# Docker (commented out to allow .dockerignore to be committed)
+# .dockerignore
 
 # macOS
 .DS_Store

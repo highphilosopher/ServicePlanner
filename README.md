@@ -117,7 +117,8 @@ The GitHub Action will:
 - Updated Dockerfile to build from solution level to ensure proper assembly references on Linux
 - Downgraded Entity Framework Core packages from 9.0.5 to 8.0.11 to match .NET 8.0 compatibility
 - Added Entity Framework Core tools installation in Dockerfile for Linux build compatibility
-- Implemented explicit directory copying in Dockerfile to ensure all source files are included
+- Fixed .dockerignore to prevent exclusion of ServicePlanner/Data/ directory (critical for build)
+- Updated .gitignore to allow .dockerignore file to be committed to repository
 - Ensured cross-platform compatibility for Linux-based GitHub Actions runners
 
 ## Environment Variables
