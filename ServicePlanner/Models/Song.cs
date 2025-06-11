@@ -10,11 +10,11 @@ namespace ServicePlanner.Models
         
         [Required]
         [StringLength(100)]
-        public string Name { get; set; } // Song Name
+        public string Name { get; set; } = string.Empty; // Song Name
         
         [Required]
         [StringLength(100)]
-        public string SongName { get; set; } // Alternative Song Name property
+        public string SongName { get; set; } = string.Empty; // Alternative Song Name property
         
         [StringLength(10)]
         public string? Key { get; set; } // Musical Key (e.g., C, G, Am, etc.)
@@ -31,15 +31,15 @@ namespace ServicePlanner.Models
         
         [Required]
         [StringLength(50)]
-        public string Speed { get; set; }
+        public string Speed { get; set; } = string.Empty;
         
         [Required]
         [StringLength(100)]
-        public string Publisher { get; set; }
+        public string Publisher { get; set; } = string.Empty;
         
         [Required]
         [StringLength(100)]
-        public string Artist { get; set; }
+        public string Artist { get; set; } = string.Empty;
         
         public bool Disabled { get; set; } // Disabled (Boolean)
         

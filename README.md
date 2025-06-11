@@ -111,6 +111,8 @@ The GitHub Action will:
 - Use GitHub Actions cache for faster builds
 - Push to `your-dockerhub-username/serviceplanner`
 
+**Note**: The project has been updated to resolve build issues that were preventing successful Docker image creation in GitHub Actions.
+
 ## Environment Variables
 
 | Variable | Description | Default |
