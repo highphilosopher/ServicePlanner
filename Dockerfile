@@ -2,18 +2,21 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy project files and restore dependencies
+# Copy solution and project files
 COPY ServicePlanner.sln ./
 COPY ServicePlanner/*.csproj ./ServicePlanner/
-RUN dotnet restore ServicePlanner/ServicePlanner.csproj
 
-# Copy source code and build the application
-COPY . .
-WORKDIR /src/ServicePlanner
-RUN dotnet build ServicePlanner.csproj -c Release -o /app/build
+# Restore dependencies
+RUN dotnet restore ServicePlanner.sln
+
+# Copy all source code
+COPY ServicePlanner/ ./ServicePlanner/
+
+# Build the application
+RUN dotnet build ServicePlanner.sln -c Release
 
 # Publish the application
-RUN dotnet publish ServicePlanner.csproj -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish ServicePlanner/ServicePlanner.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 # Use the official .NET 8.0 runtime image for the final stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
