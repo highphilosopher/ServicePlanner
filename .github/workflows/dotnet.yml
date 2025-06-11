@@ -23,7 +23,7 @@ jobs:
       run: dotnet restore ServicePlanner/ServicePlanner.csproj
       
     - name: Build
-      run: dotnet build ServicePlanner/ServicePlanner.csproj --no-restore
+      run: dotnet build ServicePlanner/ServicePlanner.csproj
       
     - name: Test
       run: dotnet test ServicePlanner/ServicePlanner.csproj --no-build --verbosity normal
