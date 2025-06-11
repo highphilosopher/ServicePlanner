@@ -58,7 +58,7 @@ docker run -p 8080:8080 -v $(pwd)/data:/app/data serviceplanner:latest
 ### Using Docker Compose (Recommended)
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ServicePlanner.git
+git clone https://github.com/highphilosopher/ServicePlanner.git
 cd ServicePlanner
 
 # Start the application
@@ -92,7 +92,7 @@ docker run -p 8080:8080 \
 ### Setup
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ServicePlanner.git
+git clone https://github.com/highphilosopher/ServicePlanner.git
 cd ServicePlanner
 
 # Restore dependencies
