@@ -28,12 +28,17 @@ LICENSE
 .idea/
 *.sln.iml
 
-# Database files
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
+# Database files (exclude runtime database files but not from source)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.sqlite
+data/*.sqlite3
+ServicePlanner/Data/*.db
+ServicePlanner/Data/*.db-shm
+ServicePlanner/Data/*.db-wal
+ServicePlanner/Data/*.sqlite
+ServicePlanner/Data/*.sqlite3
 
 # Logs
 logs/
@@ -108,6 +113,7 @@ data/
 
 # Explicitly include source code Data directory (uppercase)
 !ServicePlanner/Data/
+!ServicePlanner/Data/*
 
 # Docker files (don't include in build context)
 Dockerfile*

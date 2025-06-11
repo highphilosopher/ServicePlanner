@@ -20,6 +20,7 @@ COPY ServicePlanner ./ServicePlanner
 RUN ls -la ./ServicePlanner/
 RUN find ./ServicePlanner -name "*ata*" -type d
 RUN find ./ServicePlanner -name "ServicePlannerContext.cs"
+RUN ls -la ./ServicePlanner/Data/ || echo "Data directory not found"
 
 # Build the application
 RUN dotnet build ServicePlanner.sln -c Release
