@@ -42,9 +42,8 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV SERVICEPLANNER_DB_PATH=/app/data/serviceplanner.db
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+# Health check removed to avoid dependency issues in Linux containers
+# You can add health checks at the orchestration level (Docker Compose, Kubernetes, etc.)
 
 # Set the entry point
 ENTRYPOINT ["dotnet", "ServicePlanner.dll"]

@@ -111,7 +111,10 @@ The GitHub Action will:
 - Use GitHub Actions cache for faster builds
 - Push to `your-dockerhub-username/serviceplanner`
 
-**Note**: The project has been updated to resolve build issues that were preventing successful Docker image creation in GitHub Actions.
+**Note**: The project has been updated to resolve build issues that were preventing successful Docker image creation in GitHub Actions. Key fixes include:
+- Removed Docker HEALTHCHECK dependency on `curl` (not available in .NET runtime images)
+- Fixed Song model initialization in database seeding to include all required properties
+- Ensured cross-platform compatibility for Linux-based GitHub Actions runners
 
 ## Environment Variables
 

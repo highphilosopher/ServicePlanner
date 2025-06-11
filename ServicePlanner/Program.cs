@@ -159,16 +159,16 @@ static async Task SeedDatabase(ServicePlannerContext context)
     // Add sample songs
     var songs = new List<ServicePlanner.Models.Song>
     {
-        new() { SongName = "Amazing Grace", Artist = "Traditional", Category = "Hymn", Key = "G", Speed = "Slow", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "How Great Thou Art", Artist = "Traditional", Category = "Hymn", Key = "C", Speed = "Medium", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Blessed Be Your Name", Artist = "Matt Redman", Category = "Contemporary", Key = "A", Speed = "Medium", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "10,000 Reasons", Artist = "Matt Redman", Category = "Contemporary", Key = "C", Speed = "Medium", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Great Is Thy Faithfulness", Artist = "Traditional", Category = "Hymn", Key = "Bb", Speed = "Slow", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Way Maker", Artist = "Sinach", Category = "Contemporary", Key = "E", Speed = "Medium", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Holy, Holy, Holy", Artist = "Traditional", Category = "Hymn", Key = "Eb", Speed = "Slow", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Cornerstone", Artist = "Hillsong", Category = "Contemporary", Key = "C", Speed = "Medium", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Silent Night", Artist = "Traditional", Category = "Christmas", Key = "C", Speed = "Slow", Seasonal = true, Disabled = false, CreatedDate = DateTime.Now },
-        new() { SongName = "Joy to the World", Artist = "Traditional", Category = "Christmas", Key = "D", Speed = "Fast", Seasonal = true, Disabled = false, CreatedDate = DateTime.Now }
+        new() { Name = "Amazing Grace", SongName = "Amazing Grace", Artist = "Traditional", Category = "Hymn", Key = "G", Speed = "Slow", Publisher = "Traditional", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "How Great Thou Art", SongName = "How Great Thou Art", Artist = "Traditional", Category = "Hymn", Key = "C", Speed = "Medium", Publisher = "Traditional", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Blessed Be Your Name", SongName = "Blessed Be Your Name", Artist = "Matt Redman", Category = "Contemporary", Key = "A", Speed = "Medium", Publisher = "Thankyou Music", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "10,000 Reasons", SongName = "10,000 Reasons", Artist = "Matt Redman", Category = "Contemporary", Key = "C", Speed = "Medium", Publisher = "Thankyou Music", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Great Is Thy Faithfulness", SongName = "Great Is Thy Faithfulness", Artist = "Traditional", Category = "Hymn", Key = "Bb", Speed = "Slow", Publisher = "Traditional", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Way Maker", SongName = "Way Maker", Artist = "Sinach", Category = "Contemporary", Key = "E", Speed = "Medium", Publisher = "Integrity Music", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Holy, Holy, Holy", SongName = "Holy, Holy, Holy", Artist = "Traditional", Category = "Hymn", Key = "Eb", Speed = "Slow", Publisher = "Traditional", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Cornerstone", SongName = "Cornerstone", Artist = "Hillsong", Category = "Contemporary", Key = "C", Speed = "Medium", Publisher = "Hillsong Music", Seasonal = false, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Silent Night", SongName = "Silent Night", Artist = "Traditional", Category = "Christmas", Key = "C", Speed = "Slow", Publisher = "Traditional", Seasonal = true, Disabled = false, CreatedDate = DateTime.Now },
+        new() { Name = "Joy to the World", SongName = "Joy to the World", Artist = "Traditional", Category = "Christmas", Key = "D", Speed = "Fast", Publisher = "Traditional", Seasonal = true, Disabled = false, CreatedDate = DateTime.Now }
     };
 
     context.Songs.AddRange(songs);
