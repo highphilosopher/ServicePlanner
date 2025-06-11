@@ -1,6 +1,6 @@
 # ServicePlanner
 
-A comprehensive church service planning application built with ASP.NET Core 8.0 and Blazor Server. ServicePlanner helps churches organize worship services, manage song libraries, create service templates, and coordinate service planning activities.
+A comprehensive church service planning application built with ASP.NET Core 9.0 and Blazor Server. ServicePlanner helps churches organize worship services, manage song libraries, create service templates, and coordinate service planning activities.
 
 ## Features
 
@@ -14,7 +14,7 @@ A comprehensive church service planning application built with ASP.NET Core 8.0 
 
 ## Technology Stack
 
-- **Framework**: ASP.NET Core 8.0
+- **Framework**: ASP.NET Core 9.0
 - **UI**: Blazor Server Components
 - **Database**: SQLite with Entity Framework Core
 - **Authentication**: ASP.NET Core Identity
@@ -111,11 +111,13 @@ The GitHub Action will:
 - Use GitHub Actions cache for faster builds
 - Push to `your-dockerhub-username/serviceplanner`
 
-**Note**: The project has been updated to resolve build issues that were preventing successful Docker image creation in GitHub Actions. Key fixes include:
+**Note**: The project has been upgraded to .NET 9.0 to resolve build issues that were preventing successful Docker image creation in GitHub Actions. Key improvements include:
+- Upgraded to .NET 9.0 with latest Entity Framework Core packages (9.0.0)
+- Updated GitHub Actions workflow to use .NET 9.0.x
+- Updated Dockerfile to use .NET 9.0 SDK and runtime images
 - Removed Docker HEALTHCHECK dependency on `curl` (not available in .NET runtime images)
 - Fixed Song model initialization in database seeding to include all required properties
 - Updated Dockerfile to build from solution level to ensure proper assembly references on Linux
-- Downgraded Entity Framework Core packages from 9.0.5 to 8.0.11 to match .NET 8.0 compatibility
 - Added Entity Framework Core tools installation in Dockerfile for Linux build compatibility
 - Fixed .dockerignore to prevent exclusion of ServicePlanner/Data/ directory (critical for build)
 - Updated .gitignore to allow .dockerignore file to be committed to repository
@@ -132,7 +134,7 @@ The GitHub Action will:
 ## Local Development
 
 ### Prerequisites
-- .NET 8.0 SDK
+- .NET 9.0 SDK
 - Visual Studio 2022 or VS Code
 - Git
 

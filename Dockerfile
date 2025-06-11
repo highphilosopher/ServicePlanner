@@ -1,5 +1,5 @@
-# Use the official .NET 8.0 SDK image for building
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Use the official .NET 9.0 SDK image for building
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Install Entity Framework Core tools and set PATH
@@ -27,8 +27,8 @@ RUN dotnet build ServicePlanner.sln -c Release
 # Publish the application
 RUN dotnet publish ServicePlanner/ServicePlanner.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-# Use the official .NET 8.0 runtime image for the final stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# Use the official .NET 9.0 runtime image for the final stage
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 # Create a non-root user for security
