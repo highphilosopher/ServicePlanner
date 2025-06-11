@@ -2,16 +2,16 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Install Entity Framework Core tools and set PATH
-RUN dotnet tool install --global dotnet-ef
-ENV PATH="$PATH:/root/.dotnet/tools"
-
 # Copy solution and project files
 COPY ServicePlanner.sln ./
 COPY ServicePlanner/*.csproj ./ServicePlanner/
 
 # Restore dependencies
 RUN dotnet restore ServicePlanner.sln
+
+# Install Entity Framework Core tools and set PATH (after restore to ensure stability)
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
 
 # Copy all source code (using wildcard to handle case sensitivity)
 COPY ServicePlanner ./ServicePlanner
