@@ -6,7 +6,7 @@
             <NotAuthorized>
                 @if (context.User.Identity?.IsAuthenticated != true)
                 {
-                    <RedirectToLogin />
+                    this.Redirect();
                 }
                 else
                 {
@@ -45,13 +45,12 @@
 </Router>
 
 @code {
-    private class RedirectToLogin : ComponentBase
-    {
+
         [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-        protected override void OnInitialized()
+        private void Redirect()
         {
             Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
         }
-    }
+
 }

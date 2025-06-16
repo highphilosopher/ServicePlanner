@@ -2,10 +2,9 @@
 @using Microsoft.AspNetCore.Authorization
 @using ServicePlanner.Models
 @using ServicePlanner.Services
-@using System.ComponentModel.DataAnnotations
+@using ServicePlanner.Components.Shared
 @inject UserService UserService
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
 @attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>User Management - ServicePlanner</PageTitle>
@@ -126,92 +125,54 @@
     </div>
 </div>
 
-<!-- Create/Edit User Modal -->
-<div class="modal fade @(showUserModal ? "show" : "")" style="display: @(showUserModal ? "block" : "none")" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@(isEditMode ? "Edit User" : "Create New User")</h5>
-                <button type="button" class="btn-close" @onclick="CloseUserModal"></button>
-            </div>
-            <EditForm Model="userModel" OnValidSubmit="SaveUser">
-                <DataAnnotationsValidator />
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="firstName" class="form-label">First Name</label>
-                        <InputText @bind-Value="userModel.FirstName" class="form-control" id="firstName" />
-                        <ValidationMessage For="() => userModel.FirstName" class="text-danger" />
-                    </div>
+<!-- Blazor Modal Components -->
+<UserModal IsVisible="showUserModal"
+           IsEditMode="isEditMode"
+           UserModel="userModel"
+           IsProcessing="isLoading"
+           ErrorMessage="modalErrorMessage"
+           OnSave="SaveUser"
+           OnCancel="CloseUserModal" />
 
-                    <div class="mb-3">
-                        <label for="lastName" class="form-label">Last Name</label>
-                        <InputText @bind-Value="userModel.LastName" class="form-control" id="lastName" />
-                        <ValidationMessage For="() => userModel.LastName" class="text-danger" />
-                    </div>
+<ConfirmationModal IsVisible="showResetPasswordModal"
+                   Title="Reset Password"
+                   Message="@resetPasswordMessage"
+                   ConfirmButtonText="Reset Password"
+                   ConfirmButtonClass="btn-warning"
+                   IsProcessing="isProcessingReset"
+                   OnConfirm="ConfirmResetPassword"
+                   OnCancel="CancelResetPassword" />
 
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <InputText @bind-Value="userModel.Email" class="form-control" id="email" />
-                        <ValidationMessage For="() => userModel.Email" class="text-danger" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Role</label>
-                        <InputSelect @bind-Value="userModel.Role" class="form-select" id="role">
-                            <option value="@UserRole.User">User</option>
-                            <option value="@UserRole.Admin">Admin</option>
-                        </InputSelect>
-                        <ValidationMessage For="() => userModel.Role" class="text-danger" />
-                    </div>
-
-                    @if (!isEditMode)
-                    {
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Temporary Password</label>
-                            <InputText @bind-Value="userModel.Password" type="password" class="form-control" id="password" />
-                            <ValidationMessage For="() => userModel.Password" class="text-danger" />
-                            <div class="form-text">User will be required to change this password on first login.</div>
-                        </div>
-                    }
-
-                    @if (isEditMode)
-                    {
-                        <div class="mb-3 form-check">
-                            <InputCheckbox @bind-Value="userModel.IsActive" class="form-check-input" id="isActive" />
-                            <label class="form-check-label" for="isActive">
-                                Active
-                            </label>
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseUserModal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" disabled="@isLoading">
-                        @if (isLoading)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        }
-                        @(isEditMode ? "Update User" : "Create User")
-                    </button>
-                </div>
-            </EditForm>
-        </div>
-    </div>
-</div>
-
-@if (showUserModal)
-{
-    <div class="modal-backdrop fade show"></div>
-}
+<ConfirmationModal IsVisible="showDeactivateModal"
+                   Title="Deactivate User"
+                   Message="@deactivateMessage"
+                   ConfirmButtonText="Deactivate"
+                   ConfirmButtonClass="btn-danger"
+                   IsProcessing="isProcessingDeactivate"
+                   OnConfirm="ConfirmDeactivateUser"
+                   OnCancel="CancelDeactivateUser" />
 
 @code {
     private List<User>? users;
     private UserModel userModel = new();
-    private bool showUserModal = false;
     private bool isEditMode = false;
     private bool isLoading = false;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
+    private string modalErrorMessage = string.Empty;
+
+    // Modal visibility states
+    private bool showUserModal{get; set;} = false;
+    private bool showResetPasswordModal = false;
+    private bool showDeactivateModal = false;
+
+    // Confirmation modal states
+    private User? userToReset;
+    private User? userToDeactivate;
+    private string resetPasswordMessage = string.Empty;
+    private string deactivateMessage = string.Empty;
+    private bool isProcessingReset = false;
+    private bool isProcessingDeactivate = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -235,6 +196,7 @@
     {
         userModel = new UserModel();
         isEditMode = false;
+        modalErrorMessage = string.Empty;
         showUserModal = true;
     }
 
@@ -250,6 +212,7 @@
             IsActive = user.IsActive
         };
         isEditMode = true;
+        modalErrorMessage = string.Empty;
         showUserModal = true;
     }
 
@@ -257,26 +220,28 @@
     {
         showUserModal = false;
         userModel = new UserModel();
-        errorMessage = string.Empty;
+        modalErrorMessage = string.Empty;
+        isLoading = false;
     }
 
-    private async Task SaveUser()
+    private async Task SaveUser(UserModel model)
     {
         isLoading = true;
-        errorMessage = string.Empty;
+        modalErrorMessage = string.Empty;
+        StateHasChanged();
 
         try
         {
             if (isEditMode)
             {
-                var user = await UserService.GetUserByIdAsync(userModel.Id);
+                var user = await UserService.GetUserByIdAsync(model.Id);
                 if (user != null)
                 {
-                    user.FirstName = userModel.FirstName;
-                    user.LastName = userModel.LastName;
-                    user.Email = userModel.Email;
-                    user.Role = userModel.Role;
-                    user.IsActive = userModel.IsActive;
+                    user.FirstName = model.FirstName;
+                    user.LastName = model.LastName;
+                    user.Email = model.Email;
+                    user.Role = model.Role;
+                    user.IsActive = model.IsActive;
 
                     var result = await UserService.UpdateUserAsync(user);
                     if (result.Succeeded)
@@ -287,7 +252,7 @@
                     }
                     else
                     {
-                        errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                        modalErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
                     }
                 }
             }
@@ -295,14 +260,14 @@
             {
                 var user = new User
                 {
-                    FirstName = userModel.FirstName,
-                    LastName = userModel.LastName,
-                    Email = userModel.Email,
-                    Role = userModel.Role,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    Email = model.Email,
+                    Role = model.Role,
                     IsActive = true
                 };
 
-                var result = await UserService.CreateUserAsync(user, userModel.Password);
+                var result = await UserService.CreateUserAsync(user, model.Password);
                 if (result.Succeeded)
                 {
                     successMessage = "User created successfully.";
@@ -311,97 +276,116 @@
                 }
                 else
                 {
-                    errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                    modalErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
                 }
             }
         }
         catch (Exception ex)
         {
-            errorMessage = "An error occurred while saving the user.";
+            modalErrorMessage = "An error occurred while saving the user.";
             Console.WriteLine($"Save user error: {ex.Message}");
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 
-    private async Task ResetUserPassword(User user)
+    private void ResetUserPassword(User user)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Reset password for {user.FullName}? They will need to change it on next login."))
+        userToReset = user;
+        resetPasswordMessage = $"Reset password for {user.FullName}? They will need to change it on next login.";
+        showResetPasswordModal = true;
+    }
+
+    private async Task ConfirmResetPassword()
+    {
+        if (userToReset == null) return;
+
+        isProcessingReset = true;
+        StateHasChanged();
+
+        try
         {
-            try
+            var tempPassword = "TempPassword123!";
+            var result = await UserService.ResetPasswordAsync(userToReset, tempPassword);
+            if (result.Succeeded)
             {
-                var tempPassword = "TempPassword123!";
-                var result = await UserService.ResetPasswordAsync(user, tempPassword);
-                if (result.Succeeded)
-                {
-                    user.IsFirstLogin = true;
-                    await UserService.UpdateUserAsync(user);
-                    successMessage = $"Password reset for {user.FullName}. Temporary password: {tempPassword}";
-                    await LoadUsers();
-                }
-                else
-                {
-                    errorMessage = "Failed to reset password.";
-                }
+                userToReset.IsFirstLogin = true;
+                await UserService.UpdateUserAsync(userToReset);
+                successMessage = $"Password reset for {userToReset.FullName}. Temporary password: {tempPassword}";
+                await LoadUsers();
             }
-            catch (Exception ex)
+            else
             {
-                errorMessage = "An error occurred while resetting the password.";
-                Console.WriteLine($"Reset password error: {ex.Message}");
+                errorMessage = "Failed to reset password.";
             }
         }
-    }
-
-    private async Task DeactivateUser(User user)
-    {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Deactivate {user.FullName}? They will no longer be able to log in."))
+        catch (Exception ex)
         {
-            try
-            {
-                var result = await UserService.DeactivateUserAsync(user.Id);
-                if (result.Succeeded)
-                {
-                    successMessage = $"{user.FullName} has been deactivated.";
-                    await LoadUsers();
-                }
-                else
-                {
-                    errorMessage = "Failed to deactivate user.";
-                }
-            }
-            catch (Exception ex)
-            {
-                errorMessage = "An error occurred while deactivating the user.";
-                Console.WriteLine($"Deactivate user error: {ex.Message}");
-            }
+            errorMessage = "An error occurred while resetting the password.";
+            Console.WriteLine($"Reset password error: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingReset = false;
+            CancelResetPassword();
         }
     }
 
-    public class UserModel
+    private void CancelResetPassword()
     {
-        public string Id { get; set; } = string.Empty;
+        showResetPasswordModal = false;
+        userToReset = null;
+        resetPasswordMessage = string.Empty;
+        isProcessingReset = false;
+    }
 
-        [Required(ErrorMessage = "First name is required")]
-        [StringLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
-        public string FirstName { get; set; } = string.Empty;
+    private void DeactivateUser(User user)
+    {
+        userToDeactivate = user;
+        deactivateMessage = $"Deactivate {user.FullName}? They will no longer be able to log in.";
+        showDeactivateModal = true;
+    }
 
-        [Required(ErrorMessage = "Last name is required")]
-        [StringLength(100, ErrorMessage = "Last name cannot exceed 100 characters")]
-        public string LastName { get; set; } = string.Empty;
+    private async Task ConfirmDeactivateUser()
+    {
+        if (userToDeactivate == null) return;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        public string Email { get; set; } = string.Empty;
+        isProcessingDeactivate = true;
+        StateHasChanged();
 
-        [Required(ErrorMessage = "Role is required")]
-        public UserRole Role { get; set; } = UserRole.User;
+        try
+        {
+            var result = await UserService.DeactivateUserAsync(userToDeactivate.Id);
+            if (result.Succeeded)
+            {
+                successMessage = $"{userToDeactivate.FullName} has been deactivated.";
+                await LoadUsers();
+            }
+            else
+            {
+                errorMessage = "Failed to deactivate user.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while deactivating the user.";
+            Console.WriteLine($"Deactivate user error: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingDeactivate = false;
+            CancelDeactivateUser();
+        }
+    }
 
-        [Required(ErrorMessage = "Password is required")]
-        [StringLength(100, ErrorMessage = "Password must be at least {2} characters long.", MinimumLength = 8)]
-        public string Password { get; set; } = string.Empty;
-
-        public bool IsActive { get; set; } = true;
+    private void CancelDeactivateUser()
+    {
+        showDeactivateModal = false;
+        userToDeactivate = null;
+        deactivateMessage = string.Empty;
+        isProcessingDeactivate = false;
     }
 }
