@@ -84,6 +84,9 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userService = scope.ServiceProvider.GetRequiredService<UserService>();
     
+    // Ensure database is created and migrations are applied
+    await context.Database.MigrateAsync();
+    
     await SeedDatabase(context);
     await SeedRolesAndAdminUser(roleManager, userService);
 }
@@ -130,7 +133,7 @@ app.MapPost("/api/login", async (LoginRequest request, UserService userService, 
             return Results.Ok(new { success = false, error = "Invalid email or password." });
         }
     }
-    catch (Exception ex)
+    catch (Exception)
     {
         return Results.Ok(new { success = false, error = "An error occurred during login. Please try again." });
     }

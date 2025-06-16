@@ -1,4 +1,8 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inherits LayoutComponentBase
 
 <div class="page">
     <div class="sidebar">
@@ -7,6 +11,35 @@
 
     <main>
         <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized Context="userContext">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> @GetUserDisplayName(userContext.User)
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/change-password"><i class="bi bi-key"></i> Change Password</a></li>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized Context="adminContext">
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/admin/users"><i class="bi bi-people"></i> User Management</a></li>
+                                </Authorized>
+                            </AuthorizeView>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button type="button" class="dropdown-item" @onclick="Logout" style="border: none; background: none; width: 100%; text-align: left;">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="/login" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">
@@ -20,3 +53,22 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private string GetUserDisplayName(ClaimsPrincipal user)
+    {
+        var email = user.Identity?.Name;
+        if (!string.IsNullOrEmpty(email))
+        {
+            // Extract name part from email (before @)
+            var atIndex = email.IndexOf('@');
+            return atIndex > 0 ? email.Substring(0, atIndex) : email;
+        }
+        return "User";
+    }
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("/logout");
+    }
+}

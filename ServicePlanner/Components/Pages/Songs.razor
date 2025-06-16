@@ -423,10 +423,10 @@
         editingSong = null;
     }
 
-    private async Task<bool> ConfirmDelete()
+    private Task<bool> ConfirmDelete()
     {
         // In a real application, you might use a modal dialog or JavaScript confirm
-        return true;
+        return Task.FromResult(true);
     }
 
     private async Task LoadLastPlayedDates()
