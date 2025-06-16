@@ -22,7 +22,6 @@ namespace ServicePlanner.Services
         public async Task<List<User>> GetAllUsersAsync()
         {
             return await _context.Users
-                .Where(u => u.IsActive)
                 .OrderBy(u => u.LastName)
                 .ThenBy(u => u.FirstName)
                 .ToListAsync();
