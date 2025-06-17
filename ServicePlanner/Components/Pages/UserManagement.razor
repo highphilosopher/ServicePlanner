@@ -2,7 +2,6 @@
 @using Microsoft.AspNetCore.Authorization
 @using ServicePlanner.Models
 @using ServicePlanner.Services
-@using ServicePlanner.Components.Shared
 @inject UserService UserService
 @inject NavigationManager Navigation
 @attribute [Authorize(Roles = "Admin")]
@@ -14,7 +13,7 @@
         <div class="col-12">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
                 <h2>User Management</h2>
-                <button class="btn btn-primary" @onclick="ShowCreateUserModal">
+                <button class="btn btn-primary" @onclick="CreateNewUser">
                     <i class="bi bi-person-plus"></i> Create New User
                 </button>
             </div>
@@ -95,7 +94,7 @@
                                             <td>@(user.LastLoginDate?.ToString("MM/dd/yyyy") ?? "Never")</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <button class="btn btn-outline-primary" @onclick="() => EditUser(user)" title="Edit User">
+                                                    <button class="btn btn-outline-primary" @onclick="() => EditUser(user.Id)" title="Edit User">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
                                                     <button class="btn btn-outline-warning" @onclick="() => ResetUserPassword(user)" title="Reset Password">
@@ -103,13 +102,29 @@
                                                     </button>
                                                     @if (user.IsActive)
                                                     {
-                                                        <button class="btn btn-outline-danger" @onclick="() => DeactivateUser(user)" title="Deactivate User">
-                                                            <i class="bi bi-person-x"></i>
+                                                        <button class="btn btn-outline-danger" @onclick="() => ToggleUserStatus(user)" title="Deactivate User" disabled="@(processingUserId == user.Id)">
+                                                            @if (processingUserId == user.Id)
+                                                            {
+                                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-person-x"></i>
+                                                            }
                                                         </button>
                                                     }
                                                     else
                                                     {
-                                                        <span class="badge bg-secondary">Inactive</span>
+                                                        <button class="btn btn-outline-success" @onclick="() => ToggleUserStatus(user)" title="Activate User" disabled="@(processingUserId == user.Id)">
+                                                            @if (processingUserId == user.Id)
+                                                            {
+                                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-person-check"></i>
+                                                            }
+                                                        </button>
                                                     }
                                                 </div>
                                             </td>
@@ -125,58 +140,21 @@
     </div>
 </div>
 
-<!-- Blazor Modal Components -->
-<UserModal IsVisible="showUserModal"
-           IsEditMode="isEditMode"
-           UserModel="userModel"
-           IsProcessing="isLoading"
-           ErrorMessage="modalErrorMessage"
-           OnSave="SaveUser"
-           OnCancel="CloseUserModal" />
-
-<ConfirmationModal IsVisible="showResetPasswordModal"
-                   Title="Reset Password"
-                   Message="@resetPasswordMessage"
-                   ConfirmButtonText="Reset Password"
-                   ConfirmButtonClass="btn-warning"
-                   IsProcessing="isProcessingReset"
-                   OnConfirm="ConfirmResetPassword"
-                   OnCancel="CancelResetPassword" />
-
-<ConfirmationModal IsVisible="showDeactivateModal"
-                   Title="Deactivate User"
-                   Message="@deactivateMessage"
-                   ConfirmButtonText="Deactivate"
-                   ConfirmButtonClass="btn-danger"
-                   IsProcessing="isProcessingDeactivate"
-                   OnConfirm="ConfirmDeactivateUser"
-                   OnCancel="CancelDeactivateUser" />
-
 @code {
     private List<User>? users;
-    private UserModel userModel = new();
-    private bool isEditMode = false;
-    private bool isLoading = false;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
-    private string modalErrorMessage = string.Empty;
-
-    // Modal visibility states
-    private bool showUserModal{get; set;} = false;
-    private bool showResetPasswordModal = false;
-    private bool showDeactivateModal = false;
-
-    // Confirmation modal states
-    private User? userToReset;
-    private User? userToDeactivate;
-    private string resetPasswordMessage = string.Empty;
-    private string deactivateMessage = string.Empty;
-    private bool isProcessingReset = false;
-    private bool isProcessingDeactivate = false;
+    private string? processingUserId = null;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadUsers();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Only reload users on first render or when explicitly needed
+        // Removed automatic reload to prevent infinite loops
     }
 
     private async Task LoadUsers()
@@ -184,6 +162,7 @@
         try
         {
             users = await UserService.GetAllUsersAsync();
+            errorMessage = string.Empty;
         }
         catch (Exception ex)
         {
@@ -192,130 +171,89 @@
         }
     }
 
-    private void ShowCreateUserModal()
+    private void CreateNewUser()
     {
-        userModel = new UserModel();
-        isEditMode = false;
-        modalErrorMessage = string.Empty;
-        showUserModal = true;
+        Navigation.NavigateTo("/admin/users/create");
     }
 
-    private void EditUser(User user)
+    private void EditUser(string userId)
     {
-        userModel = new UserModel
-        {
-            Id = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email ?? string.Empty,
-            Role = user.Role,
-            IsActive = user.IsActive
-        };
-        isEditMode = true;
-        modalErrorMessage = string.Empty;
-        showUserModal = true;
+        Navigation.NavigateTo($"/admin/users/edit/{userId}");
     }
 
-    private void CloseUserModal()
+    private async Task ToggleUserStatus(User user)
     {
-        showUserModal = false;
-        userModel = new UserModel();
-        modalErrorMessage = string.Empty;
-        isLoading = false;
-    }
-
-    private async Task SaveUser(UserModel model)
-    {
-        isLoading = true;
-        modalErrorMessage = string.Empty;
+        processingUserId = user.Id;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
         StateHasChanged();
 
         try
         {
-            if (isEditMode)
+            Microsoft.AspNetCore.Identity.IdentityResult result;
+            
+            if (user.IsActive)
             {
-                var user = await UserService.GetUserByIdAsync(model.Id);
-                if (user != null)
+                result = await UserService.DeactivateUserAsync(user.Id);
+                if (result.Succeeded)
                 {
-                    user.FirstName = model.FirstName;
-                    user.LastName = model.LastName;
-                    user.Email = model.Email;
-                    user.Role = model.Role;
-                    user.IsActive = model.IsActive;
-
-                    var result = await UserService.UpdateUserAsync(user);
-                    if (result.Succeeded)
-                    {
-                        successMessage = "User updated successfully.";
-                        CloseUserModal();
-                        await LoadUsers();
-                    }
-                    else
-                    {
-                        modalErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
-                    }
+                    successMessage = $"{user.FullName} has been deactivated.";
                 }
             }
             else
             {
-                var user = new User
-                {
-                    FirstName = model.FirstName,
-                    LastName = model.LastName,
-                    Email = model.Email,
-                    Role = model.Role,
-                    IsActive = true
-                };
-
-                var result = await UserService.CreateUserAsync(user, model.Password);
+                // Reactivate user
+                user.IsActive = true;
+                result = await UserService.UpdateUserAsync(user);
                 if (result.Succeeded)
                 {
-                    successMessage = "User created successfully.";
-                    CloseUserModal();
-                    await LoadUsers();
+                    successMessage = $"{user.FullName} has been activated.";
                 }
-                else
-                {
-                    modalErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
-                }
+            }
+
+            if (result.Succeeded)
+            {
+                await LoadUsers();
+            }
+            else
+            {
+                errorMessage = $"Failed to {(user.IsActive ? "deactivate" : "activate")} user.";
             }
         }
         catch (Exception ex)
         {
-            modalErrorMessage = "An error occurred while saving the user.";
-            Console.WriteLine($"Save user error: {ex.Message}");
+            errorMessage = $"An error occurred while {(user.IsActive ? "deactivating" : "activating")} the user.";
+            Console.WriteLine($"Toggle user status error: {ex.Message}");
         }
         finally
         {
-            isLoading = false;
+            processingUserId = null;
             StateHasChanged();
         }
     }
 
-    private void ResetUserPassword(User user)
+    private async Task ResetUserPassword(User user)
     {
-        userToReset = user;
-        resetPasswordMessage = $"Reset password for {user.FullName}? They will need to change it on next login.";
-        showResetPasswordModal = true;
-    }
-
-    private async Task ConfirmResetPassword()
-    {
-        if (userToReset == null) return;
-
-        isProcessingReset = true;
-        StateHasChanged();
-
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        
         try
         {
             var tempPassword = "TempPassword123!";
-            var result = await UserService.ResetPasswordAsync(userToReset, tempPassword);
+            var result = await UserService.ResetPasswordAsync(user, tempPassword);
             if (result.Succeeded)
             {
-                userToReset.IsFirstLogin = true;
-                await UserService.UpdateUserAsync(userToReset);
-                successMessage = $"Password reset for {userToReset.FullName}. Temporary password: {tempPassword}";
-                await LoadUsers();
+                user.IsFirstLogin = true;
+                var updateResult = await UserService.UpdateUserAsync(user);
+                if (updateResult.Succeeded)
+                {
+                    successMessage = $"Password reset for {user.FullName}. Temporary password: {tempPassword}";
+                    await LoadUsers();
+                }
+                else
+                {
+                    errorMessage = "Password was reset but failed to update user status.";
+                }
             }
             else
             {
@@ -327,65 +265,5 @@
             errorMessage = "An error occurred while resetting the password.";
             Console.WriteLine($"Reset password error: {ex.Message}");
         }
-        finally
-        {
-            isProcessingReset = false;
-            CancelResetPassword();
-        }
-    }
-
-    private void CancelResetPassword()
-    {
-        showResetPasswordModal = false;
-        userToReset = null;
-        resetPasswordMessage = string.Empty;
-        isProcessingReset = false;
-    }
-
-    private void DeactivateUser(User user)
-    {
-        userToDeactivate = user;
-        deactivateMessage = $"Deactivate {user.FullName}? They will no longer be able to log in.";
-        showDeactivateModal = true;
-    }
-
-    private async Task ConfirmDeactivateUser()
-    {
-        if (userToDeactivate == null) return;
-
-        isProcessingDeactivate = true;
-        StateHasChanged();
-
-        try
-        {
-            var result = await UserService.DeactivateUserAsync(userToDeactivate.Id);
-            if (result.Succeeded)
-            {
-                successMessage = $"{userToDeactivate.FullName} has been deactivated.";
-                await LoadUsers();
-            }
-            else
-            {
-                errorMessage = "Failed to deactivate user.";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = "An error occurred while deactivating the user.";
-            Console.WriteLine($"Deactivate user error: {ex.Message}");
-        }
-        finally
-        {
-            isProcessingDeactivate = false;
-            CancelDeactivateUser();
-        }
-    }
-
-    private void CancelDeactivateUser()
-    {
-        showDeactivateModal = false;
-        userToDeactivate = null;
-        deactivateMessage = string.Empty;
-        isProcessingDeactivate = false;
     }
 }

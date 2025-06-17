@@ -1,0 +1,210 @@
+@page "/admin/users/edit/{UserId}"
+@using Microsoft.AspNetCore.Authorization
+@using ServicePlanner.Models
+@using ServicePlanner.Services
+@inject UserService UserService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Edit User - ServicePlanner</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Edit User</h2>
+                <button class="btn btn-secondary" @onclick="Cancel">
+                    <i class="bi bi-arrow-left"></i> Back to Users
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                </div>
+            }
+
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (userModel == null)
+            {
+                <div class="alert alert-warning" role="alert">
+                    User not found.
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body">
+                        <EditForm Model="userModel" OnValidSubmit="HandleValidSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger mb-3" />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="firstName" class="form-label">First Name</label>
+                                        <InputText @bind-Value="userModel.FirstName" class="form-control" id="firstName" />
+                                        <ValidationMessage For="() => userModel.FirstName" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="lastName" class="form-label">Last Name</label>
+                                        <InputText @bind-Value="userModel.LastName" class="form-control" id="lastName" />
+                                        <ValidationMessage For="() => userModel.LastName" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <InputText @bind-Value="userModel.Email" class="form-control" id="email" type="email" />
+                                <ValidationMessage For="() => userModel.Email" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <InputSelect @bind-Value="userModel.Role" class="form-select" id="role">
+                                    <option value="@UserRole.User">User</option>
+                                    <option value="@UserRole.Admin">Admin</option>
+                                </InputSelect>
+                                <ValidationMessage For="() => userModel.Role" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3 form-check">
+                                <InputCheckbox @bind-Value="userModel.IsActive" class="form-check-input" id="isActive" />
+                                <label class="form-check-label" for="isActive">
+                                    Active
+                                </label>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Password Reset</h6>
+                                        <p class="card-text text-muted">To reset the user's password, use the Reset Password button on the User Management page.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                    @if (isSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    Update User
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string UserId { get; set; } = string.Empty;
+
+    private EditUserModel? userModel;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            isLoading = true;
+            var user = await UserService.GetUserByIdAsync(UserId);
+            if (user != null)
+            {
+                userModel = new EditUserModel
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email ?? string.Empty,
+                    Role = user.Role,
+                    IsActive = user.IsActive
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load user.";
+            Console.WriteLine($"Load user error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (userModel == null) return;
+
+        isSaving = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var user = await UserService.GetUserByIdAsync(userModel.Id);
+            if (user != null)
+            {
+                user.FirstName = userModel.FirstName;
+                user.LastName = userModel.LastName;
+                user.Email = userModel.Email;
+                user.Role = userModel.Role;
+                user.IsActive = userModel.IsActive;
+
+                var result = await UserService.UpdateUserAsync(user);
+                if (result.Succeeded)
+                {
+                    Navigation.NavigateTo("/admin/users");
+                }
+                else
+                {
+                    errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                }
+            }
+            else
+            {
+                errorMessage = "User not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while updating the user.";
+            Console.WriteLine($"Update user error: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/users");
+    }
+}

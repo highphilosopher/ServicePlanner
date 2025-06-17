@@ -4,7 +4,6 @@
 @using ServicePlanner.Services
 @inject ServiceTemplateService TemplateService
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
 
 <PageTitle>@(IsEdit ? "Edit Template" : "Create Template")</PageTitle>
 
@@ -20,6 +19,21 @@
 
             <div class="card">
                 <div class="card-body">
+                    @if (!IsEdit)
+                    {
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="bi bi-info-circle"></i> Important Information</h6>
+                            <p class="mb-0">Once a service is created using this template, the template structure (events) cannot be modified. You will only be able to update the name and description, or deprecate the template.</p>
+                        </div>
+                    }
+                    else if (isTemplateInUse)
+                    {
+                        <div class="alert alert-warning mb-4">
+                            <h6><i class="bi bi-exclamation-triangle"></i> Template In Use</h6>
+                            <p class="mb-0">This template is currently being used by one or more services. Only the name and description can be modified. The events structure is locked to preserve existing services.</p>
+                        </div>
+                    }
+
                     <EditForm Model="template" OnValidSubmit="SaveTemplate">
                         <DataAnnotationsValidator />
                         <ValidationSummary class="text-danger" />
@@ -40,7 +54,7 @@
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h4>Service Events</h4>
-                                <button type="button" class="btn btn-success" @onclick="AddEvent">
+                                <button type="button" class="btn btn-success" @onclick="AddEvent" disabled="@isTemplateInUse">
                                     <i class="bi bi-plus"></i> Add Event
                                 </button>
                             </div>
@@ -63,10 +77,10 @@
                                                 <tr>
                                                     <td>
                                                         <input type="number" class="form-control form-control-sm" style="width: 80px;" 
-                                                               @bind="evt.Order" @bind:after="ReorderEvents" min="1" />
+                                                               @bind="evt.Order" @bind:after="ReorderEvents" min="1" disabled="@isTemplateInUse" />
                                                     </td>
                                                     <td>
-                                                        <select class="form-select form-select-sm" @bind="evt.Type">
+                                                        <select class="form-select form-select-sm" @bind="evt.Type" disabled="@isTemplateInUse">
                                                             @foreach (var eventType in Enum.GetValues<EventType>())
                                                             {
                                                                 <option value="@eventType">@eventType</option>
@@ -75,11 +89,11 @@
                                                     </td>
                                                     <td>
                                                         <input type="text" class="form-control form-control-sm" @bind="evt.Title" 
-                                                               placeholder="Event title" />
+                                                               placeholder="Event title" disabled="@isTemplateInUse" />
                                                     </td>
                                                     <td>
                                                         <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                                @onclick="() => RemoveEvent(evt)">
+                                                                @onclick="() => RemoveEvent(evt)" disabled="@isTemplateInUse">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </td>
@@ -116,6 +130,7 @@
     [Parameter] public int? TemplateId { get; set; }
 
     private ServiceTemplate template = new ServiceTemplate();
+    private bool isTemplateInUse = false;
     private bool IsEdit => TemplateId.HasValue;
 
     protected override async Task OnInitializedAsync()
@@ -126,6 +141,7 @@
             if (existingTemplate != null)
             {
                 template = existingTemplate;
+                isTemplateInUse = await TemplateService.IsTemplateInUseAsync(TemplateId.Value);
             }
             else
             {

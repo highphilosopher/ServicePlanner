@@ -6,7 +6,6 @@
 @inject ServiceTemplateService TemplateService
 @inject SongService SongService
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
 
 <PageTitle>@(IsEdit ? "Edit Service" : "Create Service")</PageTitle>
 
@@ -34,7 +33,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="serviceDate" class="form-label">Service Date</label>
-                                <InputDate id="serviceDate" class="form-control" @bind-Value="service.ServiceDate" />
+                                <InputDate id="serviceDate" class="form-control" @bind-Value="service.ServiceDate" @bind-Value:after="OnServiceDateChanged" />
                                 <ValidationMessage For="@(() => service.ServiceDate)" />
                             </div>
                             <div class="col-md-4">
@@ -141,7 +140,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        templates = await TemplateService.GetAllTemplatesAsync();
+        templates = await TemplateService.GetActiveTemplatesAsync();
         songs = await SongService.GetAllSongsAsync();
 
         if (IsEdit && ServiceId.HasValue)
@@ -182,6 +181,13 @@
             if (template != null)
             {
                 service.Template = template;
+                
+                // Auto-populate service name with template name + service date if name is empty
+                if (string.IsNullOrWhiteSpace(service.Name))
+                {
+                    service.Name = $"{template.Name} - {service.ServiceDate:MMM dd, yyyy}";
+                }
+                
                 service.EventInstances = template.Events.Select(evt => new ServiceEventInstance
                 {
                     ServiceId = service.Id,
@@ -196,6 +202,20 @@
         else
         {
             service.EventInstances.Clear();
+        }
+    }
+
+    private void OnServiceDateChanged()
+    {
+        // Update service name when date changes if we have a template and the name follows the auto-generated pattern
+        if (service.Template != null && !string.IsNullOrWhiteSpace(service.Template.Name))
+        {
+            // Check if the current name follows the pattern "Template Name - Date"
+            var expectedPrefix = $"{service.Template.Name} - ";
+            if (service.Name.StartsWith(expectedPrefix))
+            {
+                service.Name = $"{service.Template.Name} - {service.ServiceDate:MMM dd, yyyy}";
+            }
         }
     }
 

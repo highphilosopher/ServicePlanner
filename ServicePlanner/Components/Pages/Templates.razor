@@ -3,7 +3,6 @@
 @using ServicePlanner.Services
 @inject ServiceTemplateService TemplateService
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
 
 <PageTitle>Service Templates</PageTitle>
 
@@ -12,13 +11,21 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1>Service Templates</h1>
-                <AuthorizeView>
-                    <Authorized>
-                        <button class="btn btn-primary" @onclick="CreateNewTemplate">
-                            <i class="bi bi-plus-circle"></i> Create New Template
-                        </button>
-                    </Authorized>
-                </AuthorizeView>
+                <div class="d-flex gap-2 align-items-center">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showDeprecated" @bind="showDeprecated" @bind:after="LoadTemplates">
+                        <label class="form-check-label" for="showDeprecated">
+                            Show Deprecated
+                        </label>
+                    </div>
+                    <AuthorizeView>
+                        <Authorized>
+                            <button class="btn btn-primary" @onclick="CreateNewTemplate">
+                                <i class="bi bi-plus-circle"></i> Create New Template
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
             </div>
 
             @if (templates == null)
@@ -44,7 +51,23 @@
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">@template.Name</h5>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="card-title mb-0">@template.Name</h5>
+                                        <div>
+                                            @if (!template.IsActive)
+                                            {
+                                                <span class="badge bg-secondary">Deprecated</span>
+                                            }
+                                            else if (templateInUseStatus.ContainsKey(template.Id) && templateInUseStatus[template.Id])
+                                            {
+                                                <span class="badge bg-warning text-dark">In Use</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                        </div>
+                                    </div>
                                     <p class="card-text">@template.Description</p>
                                     <p class="text-muted small">
                                         Created: @template.CreatedDate.ToString("MMM dd, yyyy")
@@ -56,15 +79,28 @@
                                 <div class="card-footer">
                                     <AuthorizeView>
                                         <Authorized>
-                                            <div class="btn-group w-100" role="group">
-                                                <button class="btn btn-outline-primary" @onclick="() => EditTemplate(template.Id)">
-                                                    <i class="bi bi-pencil"></i> Edit
-                                                </button>
-                                                <button class="btn btn-outline-success" @onclick="() => CreateServiceFromTemplate(template.Id)">
-                                                    <i class="bi bi-calendar-plus"></i> Use
-                                                </button>
-                                                <button class="btn btn-outline-danger" @onclick="() => DeleteTemplate(template.Id)">
-                                                    <i class="bi bi-trash"></i> Delete
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="btn-group w-100" role="group">
+                                                    <button class="btn btn-outline-primary" @onclick="() => EditTemplate(template.Id)">
+                                                        <i class="bi bi-pencil"></i> Edit
+                                                    </button>
+                                                    @if (template.IsActive)
+                                                    {
+                                                        <button class="btn btn-outline-success" @onclick="() => CreateServiceFromTemplate(template.Id)">
+                                                            <i class="bi bi-calendar-plus"></i> Use
+                                                        </button>
+                                                    }
+                                                    @if (!templateInUseStatus.ContainsKey(template.Id) || !templateInUseStatus[template.Id])
+                                                    {
+                                                        <button class="btn btn-outline-danger" @onclick="() => DeleteTemplate(template.Id)">
+                                                            <i class="bi bi-trash"></i> Delete
+                                                        </button>
+                                                    }
+                                                </div>
+                                                <button class="btn @(template.IsActive ? "btn-outline-warning" : "btn-outline-success") btn-sm w-100" 
+                                                        @onclick="() => ToggleTemplateStatus(template.Id)">
+                                                    <i class="bi @(template.IsActive ? "bi-archive" : "bi-arrow-clockwise")"></i> 
+                                                    @(template.IsActive ? "Deprecate" : "Activate")
                                                 </button>
                                             </div>
                                         </Authorized>
@@ -88,6 +124,8 @@
 
 @code {
     private List<ServiceTemplate>? templates;
+    private bool showDeprecated = false;
+    private Dictionary<int, bool> templateInUseStatus = new Dictionary<int, bool>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,7 +134,17 @@
 
     private async Task LoadTemplates()
     {
-        templates = await TemplateService.GetAllTemplatesAsync();
+        templates = await TemplateService.GetAllTemplatesAsync(showDeprecated);
+        
+        // Load the in-use status for each template
+        templateInUseStatus.Clear();
+        if (templates != null)
+        {
+            foreach (var template in templates)
+            {
+                templateInUseStatus[template.Id] = await TemplateService.IsTemplateInUseAsync(template.Id);
+            }
+        }
     }
 
     private void CreateNewTemplate()
@@ -126,6 +174,12 @@
             await TemplateService.DeleteTemplateAsync(templateId);
             await LoadTemplates();
         }
+    }
+
+    private async Task ToggleTemplateStatus(int templateId)
+    {
+        await TemplateService.ToggleTemplateActiveStatusAsync(templateId);
+        await LoadTemplates();
     }
 
     private Task<bool> ConfirmDelete()

@@ -142,7 +142,13 @@ app.MapPost("/api/login", async (LoginRequest request, UserService userService, 
 app.MapPost("/api/logout", async (UserService userService) =>
 {
     await userService.SignOutAsync();
-    return Results.Ok(new { success = true });
+    return Results.Redirect("/login");
+});
+
+app.MapGet("/api/logout", async (UserService userService) =>
+{
+    await userService.SignOutAsync();
+    return Results.Redirect("/login");
 });
 
 // Add health check endpoint

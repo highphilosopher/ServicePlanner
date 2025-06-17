@@ -1,0 +1,73 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using ServicePlanner.Services
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserService UserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@code {
+    [Parameter] public RenderFragment ChildContent { get; set; } = default!;
+    [Parameter] public RouteData RouteData { get; set; } = default!;
+
+    private bool isFirstLoginRequired = false;
+    private bool isCheckingFirstLogin = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckFirstLoginStatus();
+    }
+
+    private async Task CheckFirstLoginStatus()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                var email = authState.User.Identity.Name;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    var user = await UserService.GetUserByEmailAsync(email);
+                    if (user != null && user.IsFirstLogin)
+                    {
+                        isFirstLoginRequired = true;
+                        
+                        // If user is trying to access any page other than change-password during first login
+                        var currentPath = new Uri(Navigation.Uri).AbsolutePath.ToLower();
+                        if (currentPath != "/change-password")
+                        {
+                            // Redirect to change password with first login flag
+                            Navigation.NavigateTo($"/change-password?firstLogin=true&returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking first login status: {ex.Message}");
+        }
+        finally
+        {
+            isCheckingFirstLogin = false;
+            StateHasChanged();
+        }
+    }
+}
+
+@if (isCheckingFirstLogin)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Checking user status...</p>
+        </div>
+    </div>
+}
+else
+{
+    @ChildContent
+}

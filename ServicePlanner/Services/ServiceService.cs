@@ -34,7 +34,7 @@ namespace ServicePlanner.Services
 
         public async Task<Service> CreateServiceAsync(Service service)
         {
-            // Get the template to create event instances
+            // Get the template to ensure it exists
             var template = await _context.ServiceTemplates
                 .Include(t => t.Events)
                 .FirstOrDefaultAsync(t => t.Id == service.TemplateId);
@@ -42,12 +42,29 @@ namespace ServicePlanner.Services
             if (template != null)
             {
                 service.Template = template;
-                service.EventInstances = template.Events.Select(evt => new ServiceEventInstance
+                
+                // If EventInstances are already populated (from UI), preserve them
+                // Otherwise, create new ones from template
+                if (!service.EventInstances.Any())
                 {
-                    ServiceId = service.Id,
-                    ServiceEventId = evt.Id,
-                    ServiceEvent = evt
-                }).ToList();
+                    service.EventInstances = template.Events.Select(evt => new ServiceEventInstance
+                    {
+                        ServiceId = service.Id,
+                        ServiceEventId = evt.Id,
+                        ServiceEvent = evt,
+                        PersonName = "",
+                        SongTitle = "",
+                        Notes = ""
+                    }).ToList();
+                }
+                else
+                {
+                    // EventInstances already exist from UI, just ensure ServiceId is set
+                    foreach (var instance in service.EventInstances)
+                    {
+                        instance.ServiceId = service.Id;
+                    }
+                }
             }
             
             _context.Services.Add(service);

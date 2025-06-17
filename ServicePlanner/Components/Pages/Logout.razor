@@ -1,12 +1,9 @@
 @page "/logout"
-@using ServicePlanner.Services
-@inject UserService UserService
 @inject NavigationManager Navigation
 
 @code {
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await UserService.SignOutAsync();
-        Navigation.NavigateTo("/login");
+        Navigation.NavigateTo("/api/logout", forceLoad: true);
     }
 }
