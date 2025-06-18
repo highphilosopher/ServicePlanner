@@ -90,21 +90,20 @@
             var responseJson = await JSRuntime.InvokeAsync<string>("loginUser", loginData);
             var result = System.Text.Json.JsonSerializer.Deserialize<LoginResponse>(responseJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (result?.Success == true)
-            {
-                // Small delay to ensure the authentication cookie is set
-                await Task.Delay(100);
-                
-                if (result.IsFirstLogin)
-                {
-                    Navigation.NavigateTo($"/change-password?firstLogin=true&returnUrl={Uri.EscapeDataString(ReturnUrl ?? "/")}", true);
-                }
-                else
-                {
-                    Navigation.NavigateTo(ReturnUrl ?? "/", true);
-                }
-                return;
-            }
+if (result?.Success == true)
+{
+    // Small delay to ensure the authentication cookie is set
+    await Task.Delay(100);
+    
+    if (result.IsFirstLogin)
+    {
+        Navigation.NavigateTo($"/first-time-login?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "/")}", true);
+    }
+    else
+    {
+        Navigation.NavigateTo(ReturnUrl ?? "/", true);
+    }
+}
             else
             {
                 errorMessage = result?.Error ?? "Login failed.";

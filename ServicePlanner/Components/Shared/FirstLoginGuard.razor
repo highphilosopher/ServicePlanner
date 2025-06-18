@@ -17,43 +17,38 @@
         await CheckFirstLoginStatus();
     }
 
-    private async Task CheckFirstLoginStatus()
+private async Task CheckFirstLoginStatus()
+{
+    try
     {
-        try
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
         {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            if (authState.User.Identity?.IsAuthenticated == true)
+            var email = authState.User.Identity.Name;
+            if (!string.IsNullOrEmpty(email))
             {
-                var email = authState.User.Identity.Name;
-                if (!string.IsNullOrEmpty(email))
+                var user = await UserService.GetUserByEmailAsync(email);
+                if (user != null && user.IsFirstLogin)
                 {
-                    var user = await UserService.GetUserByEmailAsync(email);
-                    if (user != null && user.IsFirstLogin)
-                    {
-                        isFirstLoginRequired = true;
-                        
-                        // If user is trying to access any page other than change-password during first login
-                        var currentPath = new Uri(Navigation.Uri).AbsolutePath.ToLower();
-                        if (currentPath != "/change-password")
-                        {
-                            // Redirect to change password with first login flag
-                            Navigation.NavigateTo($"/change-password?firstLogin=true&returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
-                            return;
-                        }
-                    }
+                    isFirstLoginRequired = true;
+                    
+                    // Redirect first-time users to the new FirstTimeLogin page
+                    Navigation.NavigateTo($"/first-time-login");
+                    return;
                 }
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error checking first login status: {ex.Message}");
-        }
-        finally
-        {
-            isCheckingFirstLogin = false;
-            StateHasChanged();
-        }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error checking first login status: {ex.Message}");
+    }
+    finally
+    {
+        isCheckingFirstLogin = false;
+        StateHasChanged();
+    }
+}
 }
 
 @if (isCheckingFirstLogin)
