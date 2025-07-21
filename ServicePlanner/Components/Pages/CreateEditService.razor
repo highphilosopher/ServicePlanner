@@ -27,16 +27,6 @@
 
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="name" class="form-label">Service Name</label>
-                                <InputText id="name" class="form-control" @bind-Value="service.Name" placeholder="e.g., Sunday Morning Service" />
-                                <ValidationMessage For="@(() => service.Name)" />
-                            </div>
-                            <div class="col-md-4">
-                                <label for="serviceDate" class="form-label">Service Date</label>
-                                <InputDate id="serviceDate" class="form-control" @bind-Value="service.ServiceDate" @bind-Value:after="OnServiceDateChanged" />
-                                <ValidationMessage For="@(() => service.ServiceDate)" />
-                            </div>
-                            <div class="col-md-4">
                                 <label for="template" class="form-label">Template</label>
                                 <select id="template" class="form-select" @bind="service.TemplateId" @bind:after="OnTemplateChanged" disabled="@IsEdit">
                                     <option value="0">Select a template...</option>
@@ -48,6 +38,26 @@
                                         }
                                     }
                                 </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="serviceDate" class="form-label">Service Date</label>
+                                <InputDate id="serviceDate" class="form-control" @bind-Value="service.ServiceDate" @bind-Value:after="OnServiceDateChanged" />
+                                <ValidationMessage For="@(() => service.ServiceDate)" />
+                            </div>
+                            <div class="col-md-4">
+                                <label for="name" class="form-label">Service Name</label>
+                                <InputText id="name" class="form-control" @bind-Value="service.Name" placeholder="e.g., Sunday Morning Service" />
+                                <ValidationMessage For="@(() => service.Name)" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <InputCheckbox id="isSeasonal" class="form-check-input" @bind-Value="service.IsSeasonal" />
+                                    <label class="form-check-label" for="isSeasonal">
+                                        Seasonal Service
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -87,21 +97,21 @@
                                                                    @bind="instance.PersonName" 
                                                                    placeholder="Person name" />
                                                         }
-                                                        else if (instance.ServiceEvent?.Type == EventType.Song)
-                                                        {
-                                                    <select class="form-select form-select-sm" @bind="instance.SongTitle">
-                                                        <option value="">Select a song...</option>
-                                                        @if (songs != null)
-                                                        {
-                                                            @foreach (var song in songs)
-                                                            {
-                                                                <option value="@song.SongName">
-                                                                    @FormatSongOption(song)
-                                                                </option>
-                                                            }
-                                                        }
-                                                    </select>
-                                                        }
+                                        else if (instance.ServiceEvent?.Type == EventType.Song)
+                                        {
+                                    <select class="form-select form-select-sm" @bind="instance.SongTitle">
+                                        <option value="">Select a song...</option>
+                                        @if (songs != null)
+                                        {
+                                            @foreach (var song in songs.Where(s => !service.IsSeasonal || s.Seasonal))
+                                            {
+                                                <option value="@song.SongName">
+                                                    @FormatSongOption(song)
+                                                </option>
+                                            }
+                                        }
+                                    </select>
+                                        }
                                                     </td>
                                                     <td>
                                                         <input type="text" class="form-control form-control-sm" 
@@ -274,5 +284,12 @@
             ? lastPlayedDates[song.SongName]?.ToString("MMM dd, yyyy") 
             : "Never";
         return $"{song.SongName} - {song.Artist} (Last played: {lastPlayed})";
+    }
+
+    private DateTime GetNextSunday()
+    {
+        DateTime today = DateTime.Today;
+        int daysUntilSunday = ((int)DayOfWeek.Sunday - (int)today.DayOfWeek + 7) % 7;
+        return today.AddDays(daysUntilSunday);
     }
 }

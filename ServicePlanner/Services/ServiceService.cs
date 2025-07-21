@@ -82,6 +82,7 @@ namespace ServicePlanner.Services
             {
                 existingService.Name = service.Name;
                 existingService.ServiceDate = service.ServiceDate;
+                existingService.IsSeasonal = service.IsSeasonal;
                 
                 // Update event instances
                 foreach (var instance in service.EventInstances)
@@ -126,6 +127,17 @@ namespace ServicePlanner.Services
                 .Include(s => s.EventInstances)
                     .ThenInclude(ei => ei.ServiceEvent)
                 .Where(s => s.ServiceDate >= startDate && s.ServiceDate <= endDate)
+                .OrderBy(s => s.ServiceDate)
+                .ToListAsync();
+        }
+
+        public async Task<List<Service>> GetFutureServicesAsync()
+        {
+            return await _context.Services
+                .Include(s => s.Template)
+                .Include(s => s.EventInstances)
+                    .ThenInclude(ei => ei.ServiceEvent)
+                .Where(s => s.ServiceDate >= DateTime.Today)
                 .OrderBy(s => s.ServiceDate)
                 .ToListAsync();
         }

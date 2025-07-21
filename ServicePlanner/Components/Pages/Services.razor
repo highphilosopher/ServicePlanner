@@ -21,17 +21,22 @@
             </div>
 
             <div class="row mb-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="startDate" class="form-label">From Date</label>
                     <input type="date" id="startDate" class="form-control" @bind="startDate" @bind:after="FilterServices" />
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="endDate" class="form-label">To Date</label>
                     <input type="date" id="endDate" class="form-control" @bind="endDate" @bind:after="FilterServices" />
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
+                <div class="col-md-3 d-flex align-items-end">
                     <button class="btn btn-outline-secondary" @onclick="ClearDateFilter">
                         Clear Filter
+                    </button>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn @(showPastServices ? 'btn-primary' : 'btn-outline-secondary')" @onclick="TogglePastServices">
+                        @(showPastServices ? "Showing All Services" : "Show Past Services")
                     </button>
                 </div>
             </div>
@@ -71,6 +76,10 @@
                                     }
                                     <p class="text-muted small">
                                         Events: @service.EventInstances.Count
+                                        @if (service.IsSeasonal)
+                                        {
+                                            <span class="badge bg-warning ms-2">Seasonal</span>
+                                        }
                                     </p>
                                 </div>
                                 <div class="card-footer">
@@ -110,6 +119,7 @@
     private List<Service>? services;
     private DateTime? startDate;
     private DateTime? endDate;
+    private bool showPastServices = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,13 +128,23 @@
 
     private async Task LoadServices()
     {
-        if (startDate.HasValue && endDate.HasValue)
+        if (showPastServices)
         {
-            services = await ServiceService.GetServicesByDateRangeAsync(startDate.Value, endDate.Value);
+            // Show all services
+            services = await ServiceService.GetAllServicesAsync();
         }
         else
         {
-            services = await ServiceService.GetAllServicesAsync();
+            // Show only future services
+            services = await ServiceService.GetFutureServicesAsync();
+        }
+
+        // Apply additional date range filter if specified
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            services = services
+                .Where(s => s.ServiceDate >= startDate.Value && s.ServiceDate <= endDate.Value)
+                .ToList();
         }
     }
 
@@ -137,6 +157,12 @@
     {
         startDate = null;
         endDate = null;
+        await LoadServices();
+    }
+
+    private async Task TogglePastServices()
+    {
+        showPastServices = !showPastServices;
         await LoadServices();
     }
 

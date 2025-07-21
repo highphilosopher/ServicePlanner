@@ -8,6 +8,7 @@ namespace ServicePlanner.Models
         public int TemplateId { get; set; }
         public ServiceTemplate? Template { get; set; }
         public List<ServiceEventInstance> EventInstances { get; set; } = new List<ServiceEventInstance>();
+        public bool IsSeasonal { get; set; } // New property for seasonal services
     }
 
     public class ServiceEventInstance
