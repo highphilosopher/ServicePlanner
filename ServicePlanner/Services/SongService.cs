@@ -125,14 +125,16 @@ namespace ServicePlanner.Services
             var songs = await GetAllSongsAsync();
             var lastPlayedDates = await GetLastPlayedDatesAsync();
 
-            // Create a list of anonymous objects with song and last played date for sorting
-            var songsWithLastPlayed = songs.Select(song => new
-            {
-                Song = song,
-                LastPlayed = lastPlayedDates.ContainsKey(song.SongName) ? lastPlayedDates[song.SongName] : null
-            }).ToList();
+            // Order songs by last played date (oldest first), with never-played songs at the top
+            var orderedSongs = songs
+                .OrderBy(song => 
+                    lastPlayedDates.ContainsKey(song.SongName) 
+                        ? lastPlayedDates[song.SongName] 
+                        : DateTime.MinValue)
+                .ThenBy(song => song.SongName)
+                .ToList();
 
-            return songsWithLastPlayed.Select(x => x.Song).ToList();
+            return orderedSongs;
         }
 
         public async Task<List<Song>> ImportSongsFromCsvAsync(Stream csvStream)

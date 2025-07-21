@@ -89,16 +89,18 @@
                                                         }
                                                         else if (instance.ServiceEvent?.Type == EventType.Song)
                                                         {
-                                                            <select class="form-select form-select-sm" @bind="instance.SongTitle">
-                                                                <option value="">Select a song...</option>
-                                                                @if (songs != null)
-                                                                {
-                                                                    @foreach (var song in songs)
-                                                                    {
-                                                                        <option value="@song.SongName">@song.SongName - @song.Artist</option>
-                                                                    }
-                                                                }
-                                                            </select>
+                                                    <select class="form-select form-select-sm" @bind="instance.SongTitle">
+                                                        <option value="">Select a song...</option>
+                                                        @if (songs != null)
+                                                        {
+                                                            @foreach (var song in songs)
+                                                            {
+                                                                <option value="@song.SongName">
+                                                                    @FormatSongOption(song)
+                                                                </option>
+                                                            }
+                                                        }
+                                                    </select>
                                                         }
                                                     </td>
                                                     <td>
@@ -136,12 +138,14 @@
     private Service service = new Service();
     private List<ServiceTemplate>? templates;
     private List<Song>? songs;
+    private Dictionary<string, DateTime?> lastPlayedDates = new Dictionary<string, DateTime?>();
     private bool IsEdit => ServiceId.HasValue;
 
     protected override async Task OnInitializedAsync()
     {
         templates = await TemplateService.GetActiveTemplatesAsync();
-        songs = await SongService.GetAllSongsAsync();
+        songs = await SongService.GetAllSongsWithLastPlayedAsync();
+        lastPlayedDates = await SongService.GetLastPlayedDatesAsync();
 
         if (IsEdit && ServiceId.HasValue)
         {
@@ -262,5 +266,13 @@
     private void Cancel()
     {
         Navigation.NavigateTo("/services");
+    }
+
+    private string FormatSongOption(Song song)
+    {
+        var lastPlayed = lastPlayedDates.ContainsKey(song.SongName) 
+            ? lastPlayedDates[song.SongName]?.ToString("MMM dd, yyyy") 
+            : "Never";
+        return $"{song.SongName} - {song.Artist} (Last played: {lastPlayed})";
     }
 }
