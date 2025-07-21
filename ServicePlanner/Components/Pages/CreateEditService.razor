@@ -99,20 +99,24 @@
                                                         }
                                         else if (instance.ServiceEvent?.Type == EventType.Song)
                                         {
-                                    <select class="form-select form-select-sm" @bind="instance.SongTitle">
-                                        <option value="">Select a song...</option>
-                                        @if (songs != null)
-                                        {
-@foreach (var song in songs.Where(s => 
-    (service.IsSeasonal ? s.Seasonal : !s.Seasonal) && 
-    !service.EventInstances.Any(ei => ei.SongTitle == s.SongName)))
+<select class="form-select form-select-sm" @bind="instance.SongTitle">
+    <option value="">Select a song...</option>
+@if (songs != null)
 {
-    <option value="@song.SongName">
-        @FormatSongOption(song)
-    </option>
+    var filteredSongs = songs
+        .Where(s => 
+            (service.IsSeasonal ? s.Seasonal : !s.Seasonal) && 
+            !service.EventInstances.Any(ei => ei.SongTitle == s.SongName))
+        .ToList();
+
+    @foreach (var song in filteredSongs)
+    {
+        <option value="@song.SongName">
+            @FormatSongOption(song)
+        </option>
+    }
 }
-                                        }
-                                    </select>
+</select>
                                         }
                                                     </td>
                                                     <td>
