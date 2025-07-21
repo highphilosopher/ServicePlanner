@@ -103,12 +103,14 @@
                                         <option value="">Select a song...</option>
                                         @if (songs != null)
                                         {
-                                            @foreach (var song in songs.Where(s => !service.IsSeasonal || s.Seasonal))
-                                            {
-                                                <option value="@song.SongName">
-                                                    @FormatSongOption(song)
-                                                </option>
-                                            }
+@foreach (var song in songs.Where(s => 
+    (service.IsSeasonal ? s.Seasonal : !s.Seasonal) && 
+    !service.EventInstances.Any(ei => ei.SongTitle == s.SongName)))
+{
+    <option value="@song.SongName">
+        @FormatSongOption(song)
+    </option>
+}
                                         }
                                     </select>
                                         }
