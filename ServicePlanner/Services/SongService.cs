@@ -125,12 +125,10 @@ namespace ServicePlanner.Services
             var songs = await GetAllSongsAsync();
             var lastPlayedDates = await GetLastPlayedDatesAsync();
 
-            // Order songs by last played date (oldest first), with never-played songs at the top
+            // Order songs by last played date (oldest first), with never-played songs at the end
             var orderedSongs = songs
-                .OrderBy(song => 
-                    lastPlayedDates.ContainsKey(song.SongName) 
-                        ? lastPlayedDates[song.SongName] 
-                        : DateTime.MinValue)
+                .OrderBy(song =>
+                    lastPlayedDates.TryGetValue(song.SongName, out var dt) && dt.HasValue ? dt.Value : DateTime.MaxValue)
                 .ThenBy(song => song.SongName)
                 .ToList();
 

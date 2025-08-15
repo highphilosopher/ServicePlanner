@@ -144,8 +144,9 @@ namespace ServicePlanner.Services
         public async Task SeedDefaultAdminAsync()
         {
             const string adminEmail = "admin@serviceplanner.local";
-            const string adminPassword = "ServicePlanner2025!";
-
+            // Use a temporary dev password that can be changed after first login
+            const string tempAdminPassword = "TempPassword123!";
+    
             var adminUser = await _userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)
             {
@@ -161,11 +162,30 @@ namespace ServicePlanner.Services
                     CreatedDate = DateTime.UtcNow,
                     IsActive = true
                 };
-
-                var result = await _userManager.CreateAsync(adminUser, adminPassword);
+    
+                var result = await _userManager.CreateAsync(adminUser, tempAdminPassword);
                 if (result.Succeeded)
                 {
                     await _userManager.AddToRoleAsync(adminUser, UserRole.Admin.ToString());
+                }
+            }
+            else
+            {
+                // Reset the existing admin's password to the temporary password
+                try
+                {
+                    var resetResult = await ResetPasswordAsync(adminUser, tempAdminPassword);
+                    if (resetResult.Succeeded)
+                    {
+                        // Ensure first login flag is set so admin must change password
+                        adminUser.IsFirstLogin = true;
+                        await _userManager.UpdateAsync(adminUser);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log or surface as needed; swallowing here since this is a dev convenience
+                    Console.WriteLine($"Failed to reset admin password: {ex.Message}");
                 }
             }
         }
