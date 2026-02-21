@@ -75,12 +75,15 @@ namespace ServicePlanner.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.PersonName).HasMaxLength(100);
-                entity.Property(e => e.SongTitle).HasMaxLength(200);
                 entity.Property(e => e.Notes).HasMaxLength(1000);
                 entity.HasOne(e => e.ServiceEvent)
                       .WithMany()
                       .HasForeignKey(e => e.ServiceEventId)
                       .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Song)
+                      .WithMany()
+                      .HasForeignKey(e => e.SongId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Configure User entity

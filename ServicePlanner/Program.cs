@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ServicePlanner.Components;
 using ServicePlanner.Data;
 using ServicePlanner.Models;
+using ServicePlanner.Options;
 using ServicePlanner.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,20 +23,31 @@ builder.Services.AddAuthentication()
     });
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<DatabaseSyncOptions>(
+    builder.Configuration.GetSection(DatabaseSyncOptions.SectionName));
+builder.Services.AddSingleton<DatabaseSyncService>();
+
 // Add Entity Framework with configurable database path
+const string dataSourcePrefix = "Data Source=";
 var dbPath = Environment.GetEnvironmentVariable("SERVICEPLANNER_DB_PATH") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Data Source=./data/serviceplanner.db";
+    ?? $"{dataSourcePrefix}./data/serviceplanner.db";
+
+var localDbPath = dbPath.StartsWith(dataSourcePrefix, StringComparison.OrdinalIgnoreCase)
+    ? dbPath[dataSourcePrefix.Length..]
+    : dbPath;
 
 // Ensure the directory exists for the database file
-var dbDirectory = Path.GetDirectoryName(dbPath.Replace("Data Source=", ""));
+var dbDirectory = Path.GetDirectoryName(localDbPath);
 if (!string.IsNullOrEmpty(dbDirectory) && !Directory.Exists(dbDirectory))
 {
     Directory.CreateDirectory(dbDirectory);
 }
 
 builder.Services.AddDbContext<ServicePlannerContext>(options =>
-    options.UseSqlite(dbPath.StartsWith("Data Source=") ? dbPath : $"Data Source={dbPath}"));
+    options.UseSqlite(dbPath.StartsWith(dataSourcePrefix, StringComparison.OrdinalIgnoreCase)
+        ? dbPath
+        : $"{dataSourcePrefix}{dbPath}"));
 
 // Add ASP.NET Core Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
@@ -80,6 +92,9 @@ var app = builder.Build();
 // Initialize database with sample data and admin user
 using (var scope = app.Services.CreateScope())
 {
+    var dbSync = scope.ServiceProvider.GetRequiredService<DatabaseSyncService>();
+    await dbSync.SyncIfNeededAsync(localDbPath, app.Environment);
+
     var context = scope.ServiceProvider.GetRequiredService<ServicePlannerContext>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userService = scope.ServiceProvider.GetRequiredService<UserService>();

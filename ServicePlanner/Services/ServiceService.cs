@@ -38,11 +38,11 @@ namespace ServicePlanner.Services
             var template = await _context.ServiceTemplates
                 .Include(t => t.Events)
                 .FirstOrDefaultAsync(t => t.Id == service.TemplateId);
-                
+
             if (template != null)
             {
                 service.Template = template;
-                
+
                 // If EventInstances are already populated (from UI), preserve them
                 // Otherwise, create new ones from template
                 if (!service.EventInstances.Any())
@@ -53,7 +53,7 @@ namespace ServicePlanner.Services
                         ServiceEventId = evt.Id,
                         ServiceEvent = evt,
                         PersonName = "",
-                        SongTitle = "",
+                        SongId = null,
                         Notes = ""
                     }).ToList();
                 }
@@ -66,7 +66,7 @@ namespace ServicePlanner.Services
                     }
                 }
             }
-            
+
             _context.Services.Add(service);
             await _context.SaveChangesAsync();
             return service;
@@ -83,25 +83,25 @@ namespace ServicePlanner.Services
                 existingService.Name = service.Name;
                 existingService.ServiceDate = service.ServiceDate;
                 existingService.IsSeasonal = service.IsSeasonal;
-                
+
                 // Update event instances
                 foreach (var instance in service.EventInstances)
                 {
                     var existingInstance = existingService.EventInstances
                         .FirstOrDefault(ei => ei.Id == instance.Id);
-                        
+
                     if (existingInstance != null)
                     {
                         existingInstance.PersonName = instance.PersonName;
-                        existingInstance.SongTitle = instance.SongTitle;
+                        existingInstance.SongId = instance.SongId;
                         existingInstance.Notes = instance.Notes;
                     }
                 }
-                
+
                 await _context.SaveChangesAsync();
                 return existingService;
             }
-            
+
             return service;
         }
 
@@ -110,7 +110,7 @@ namespace ServicePlanner.Services
             var service = await _context.Services
                 .Include(s => s.EventInstances)
                 .FirstOrDefaultAsync(s => s.Id == id);
-                
+
             if (service != null)
             {
                 _context.Services.Remove(service);

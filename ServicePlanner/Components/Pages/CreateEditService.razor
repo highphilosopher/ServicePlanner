@@ -1,205 +1,202 @@
-@page "/services/create"
-@page "/services/edit/{ServiceId:int}"
+@page "/services/create-edit"
 @using ServicePlanner.Models
 @using ServicePlanner.Services
+@inject NavigationManager Navigation
 @inject ServiceService ServiceService
 @inject ServiceTemplateService TemplateService
 @inject SongService SongService
-@inject NavigationManager Navigation
 
-<PageTitle>@(IsEdit ? "Edit Service" : "Create Service")</PageTitle>
+<h3 class="mb-4">@Title</h3>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>@(IsEdit ? "Edit Service" : "Create New Service")</h1>
-                <button class="btn btn-secondary" @onclick="Cancel">
-                    <i class="bi bi-arrow-left"></i> Back to Services
-                </button>
+@if (loading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (service != null)
+{
+    <form @onsubmit="SaveService">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="serviceName" class="form-label">Service Name</label>
+                <input type="text" class="form-control" id="serviceName" @bind="service.Name" required />
             </div>
+            <div class="col-md-6">
+                <label for="serviceDate" class="form-label">Service Date</label>
+                <input type="date" class="form-control" id="serviceDate" @bind="service.ServiceDate" required />
+            </div>
+        </div>
 
-            <div class="card">
-                <div class="card-body">
-                    <EditForm Model="service" OnValidSubmit="SaveService">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary class="text-danger" />
-
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label for="template" class="form-label">Template</label>
-                                <select id="template" class="form-select" @bind="service.TemplateId" @bind:after="OnTemplateChanged" disabled="@IsEdit">
-                                    <option value="0">Select a template...</option>
-                                    @if (templates != null)
-                                    {
-                                        @foreach (var template in templates)
-                                        {
-                                            <option value="@template.Id">@template.Name</option>
-                                        }
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="serviceDate" class="form-label">Service Date</label>
-                                <InputDate id="serviceDate" class="form-control" @bind-Value="service.ServiceDate" @bind-Value:after="OnServiceDateChanged" />
-                                <ValidationMessage For="@(() => service.ServiceDate)" />
-                            </div>
-                            <div class="col-md-4">
-                                <label for="name" class="form-label">Service Name</label>
-                                <InputText id="name" class="form-control" @bind-Value="service.Name" placeholder="e.g., Sunday Morning Service" />
-                                <ValidationMessage For="@(() => service.Name)" />
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <InputCheckbox id="isSeasonal" class="form-check-input" @bind-Value="service.IsSeasonal" />
-                                    <label class="form-check-label" for="isSeasonal">
-                                        Seasonal Service
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        @if (service.EventInstances.Any())
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="templateId" class="form-label">Template</label>
+                <select class="form-select" id="templateId" @bind="service.TemplateId" required>
+                    <option value="0">Select a template...</option>
+                    @if (templates != null)
+                    {
+                        @foreach (var template in templates)
                         {
-                            <div class="mb-4">
-                                <h4>Service Events</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Order</th>
-                                                <th>Type</th>
-                                                <th>Title</th>
-                                                <th>Details</th>
-                                                <th>Notes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var instance in service.EventInstances.OrderBy(e => e.ServiceEvent?.Order))
-                                            {
-                                                <tr>
-                                                    <td>@instance.ServiceEvent?.Order</td>
-                                                    <td>
-                                                        <span class="badge bg-@GetEventTypeBadgeColor(instance.ServiceEvent?.Type)">
-                                                            @instance.ServiceEvent?.Type
-                                                        </span>
-                                                    </td>
-                                                    <td>@instance.ServiceEvent?.Title</td>
-                                                    <td>
-                                                        @if (instance.ServiceEvent?.Type == EventType.Speaker || 
-                                                             instance.ServiceEvent?.Type == EventType.Prayer ||
-                                                             instance.ServiceEvent?.Type == EventType.Communion ||
-                                                             instance.ServiceEvent?.Type == EventType.Baptism)
-                                                        {
-                                                            <input type="text" class="form-control form-control-sm" 
-                                                                   @bind="instance.PersonName" 
-                                                                   placeholder="Person name" />
-                                                        }
-                                        else if (instance.ServiceEvent?.Type == EventType.Song)
-                                                                                {
-                                        <select class="form-select form-select-sm" @bind="instance.SongTitle" @key="instance">
-                                            <option value="">Select a song...</option>
-                                        @if (songs != null)
-                                        {
-                                            // Exclude songs that are already selected in other event lines for this service,
-                                            // but allow the current instance's selection to remain available in its own dropdown.
-                                            var filteredSongs = songs
-                                                .Where(s =>
-                                                    (service.IsSeasonal ? s.Seasonal : !s.Seasonal) &&
-                                                    !service.EventInstances.Any(ei =>
-                                                        ei != instance &&
-                                                        !string.IsNullOrWhiteSpace(ei.SongTitle) &&
-                                                        string.Equals(ei.SongTitle.Trim(), s.SongName.Trim(), System.StringComparison.OrdinalIgnoreCase)));
-                                        
-                                            // Order by last played (oldest first), with never-played songs at the end, then by name
-                                            filteredSongs = filteredSongs
-                                                .OrderBy(s => lastPlayedDates != null && lastPlayedDates.TryGetValue(s.SongName, out var dt) && dt.HasValue ? dt.Value : DateTime.MaxValue)
-                                                .ThenBy(s => s.SongName);
-                                        
-                                            @foreach (var song in filteredSongs)
-                                            {
-                                                <option @key="song.Id" value="@song.SongName">
-                                                    @FormatSongOption(song)
-                                                </option>
-                                            }
-                                        }
-                                        </select>
-                                                                                }
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control form-control-sm" 
-                                                               @bind="instance.Notes" 
-                                                               placeholder="Additional notes" />
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            <option value="@template.Id">@template.Name</option>
                         }
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> @(IsEdit ? "Update Service" : "Create Service")
-                            </button>
-                            <button type="button" class="btn btn-secondary" @onclick="Cancel">
-                                Cancel
-                            </button>
-                        </div>
-                    </EditForm>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check form-switch mt-4">
+                    <input class="form-check-input" type="checkbox" id="isSeasonal" @bind="service.IsSeasonal">
+                    <label class="form-check-label" for="isSeasonal">Seasonal Service</label>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+
+        @if (service.EventInstances != null && service.EventInstances.Any())
+        {
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Service Events</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Event Type</th>
+                                        <th>Person</th>
+                                        <th>Song</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < service.EventInstances.Count; i++)
+                                    {
+                                        var instance = service.EventInstances[i];
+                                        <tr>
+                                            <td>@instance.ServiceEvent?.Type</td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm"
+                                                       @bind="instance.PersonName"
+                                                       placeholder="Person's name" />
+                                            </td>
+                                            <td>
+                                                @if (instance.ServiceEvent?.Type == EventType.Song)
+                                                {
+                                                    <select class="form-select form-select-sm" @bind="instance.SongId" @key="instance">
+                                                        <option value="">Select a song...</option>
+                                                        @if (songs != null)
+                                                        {
+                                                            // Exclude songs that are already selected in other event lines for this service,
+                                                            // but allow the current instance's selection to remain available in its own dropdown.
+                                                            var filteredSongs = songs
+                                                                .Where(s =>
+                                                                    (service.IsSeasonal ? s.Seasonal : !s.Seasonal) &&
+                                                                    !service.EventInstances.Any(ei =>
+                                                                        ei != instance &&
+                                                                        ei.SongId.HasValue &&
+                                                                        ei.SongId.Value == s.Id));
+
+                                                            // Order by last played (oldest first), with never-played songs at the end, then by name
+                                                            filteredSongs = filteredSongs
+                                                                .OrderBy(s => lastPlayedDates != null && lastPlayedDates.TryGetValue(s.SongName, out var dt) && dt.HasValue ? dt.Value : DateTime.MaxValue)
+                                                                .ThenBy(s => s.SongName);
+
+                                                            @foreach (var song in filteredSongs)
+                                                            {
+                                                                <option @key="song.Id" value="@song.Id">
+                                                                    @FormatSongOption(song)
+                                                                </option>
+                                                            }
+                                                        }
+                                                    </select>
+                                                }
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm"
+                                                       @bind="instance.Notes"
+                                                       placeholder="Additional notes" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> @(IsEdit ? "Update Service" : "Create Service")
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                Cancel
+            </button>
+        </div>
+    </form>
+}
 
 @code {
-    [Parameter] public int? ServiceId { get; set; }
-    [SupplyParameterFromQuery] public int? TemplateId { get; set; }
+    [Parameter] public int Id { get; set; }
 
-    private Service service = new Service();
+    private Service? service;
     private List<ServiceTemplate>? templates;
     private List<Song>? songs;
-    private Dictionary<string, DateTime?> lastPlayedDates = new Dictionary<string, DateTime?>();
-    private bool IsEdit => ServiceId.HasValue;
+    private Dictionary<string, DateTime?>? lastPlayedDates;
+    private bool loading = true;
+    private string Title => IsEdit ? "Edit Service" : "Create New Service";
+    private bool IsEdit => Id > 0;
 
     protected override async Task OnInitializedAsync()
     {
-        templates = await TemplateService.GetActiveTemplatesAsync();
-        songs = await SongService.GetAllSongsWithLastPlayedAsync();
-        lastPlayedDates = await SongService.GetLastPlayedDatesAsync();
-
-        if (IsEdit && ServiceId.HasValue)
+        await LoadData();
+        if (IsEdit)
         {
-            var existingService = await ServiceService.GetServiceByIdAsync(ServiceId.Value);
-            if (existingService != null)
-            {
-                service = existingService;
-            }
-            else
+            service = await ServiceService.GetServiceByIdAsync(Id);
+            if (service == null)
             {
                 Navigation.NavigateTo("/services");
+                return;
             }
         }
         else
         {
             service = new Service
             {
-                Name = "",
-                ServiceDate = DateTime.Today.AddDays(7), // Default to next week
-                TemplateId = TemplateId ?? 0,
-                EventInstances = new List<ServiceEventInstance>()
+                ServiceDate = DateTime.Today,
+                IsSeasonal = false
             };
-
-            if (TemplateId.HasValue && TemplateId.Value > 0)
-            {
-                service.TemplateId = TemplateId.Value;
-                await OnTemplateChanged();
-            }
         }
+        loading = false;
+    }
+
+    private async Task LoadData()
+    {
+        templates = await TemplateService.GetAllTemplatesAsync();
+        songs = await SongService.GetAllSongsAsync();
+        lastPlayedDates = await SongService.GetLastPlayedDatesAsync();
+    }
+
+    private async Task SaveService()
+    {
+        if (IsEdit)
+        {
+            service = await ServiceService.UpdateServiceAsync(service!);
+        }
+        else
+        {
+            service = await ServiceService.CreateServiceAsync(service!);
+        }
+
+        Navigation.NavigateTo($"/services/view/{service.Id}");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/services");
     }
 
     private async Task OnTemplateChanged()
@@ -210,20 +207,20 @@
             if (template != null)
             {
                 service.Template = template;
-                
+
                 // Auto-populate service name with template name + service date if name is empty
                 if (string.IsNullOrWhiteSpace(service.Name))
                 {
                     service.Name = $"{template.Name} - {service.ServiceDate:MMM dd, yyyy}";
                 }
-                
+
                 service.EventInstances = template.Events.Select(evt => new ServiceEventInstance
                 {
                     ServiceId = service.Id,
                     ServiceEventId = evt.Id,
                     ServiceEvent = evt,
                     PersonName = "",
-                    SongTitle = "",
+                    SongId = null,
                     Notes = ""
                 }).ToList();
             }
@@ -248,71 +245,8 @@
         }
     }
 
-    private string GetEventTypeBadgeColor(EventType? eventType)
-    {
-        return eventType switch
-        {
-            EventType.Speaker => "primary",
-            EventType.Prayer => "success",
-            EventType.Communion => "warning",
-            EventType.Baptism => "info",
-            EventType.Song => "secondary",
-            _ => "light"
-        };
-    }
-
-    private async Task SaveService()
-    {
-        if (string.IsNullOrWhiteSpace(service.Name) || service.TemplateId == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            if (IsEdit)
-            {
-                await ServiceService.UpdateServiceAsync(service);
-            }
-            else
-            {
-                await ServiceService.CreateServiceAsync(service);
-            }
-
-            Navigation.NavigateTo("/services");
-        }
-        catch (Exception ex)
-        {
-            // In a real application, you would handle this error appropriately
-            Console.WriteLine($"Error saving service: {ex.Message}");
-        }
-    }
-
-    private void Cancel()
-    {
-        Navigation.NavigateTo("/services");
-    }
-
     private string FormatSongOption(Song song)
     {
-        string lastPlayedStr;
-        if (lastPlayedDates != null && lastPlayedDates.ContainsKey(song.SongName) && lastPlayedDates[song.SongName].HasValue)
-        {
-            lastPlayedStr = lastPlayedDates[song.SongName]!.Value.ToString("MM-dd-yyyy");
-        }
-        else
-        {
-            lastPlayedStr = "Never";
-        }
-
-        var speed = string.IsNullOrWhiteSpace(song.Speed) ? "Unknown" : song.Speed;
-        return $"{lastPlayedStr} - {song.SongName} - {speed}";
-    }
-
-    private DateTime GetNextSunday()
-    {
-        DateTime today = DateTime.Today;
-        int daysUntilSunday = ((int)DayOfWeek.Sunday - (int)today.DayOfWeek + 7) % 7;
-        return today.AddDays(daysUntilSunday);
+        return $"{song.SongName} - {song.Artist}";
     }
 }

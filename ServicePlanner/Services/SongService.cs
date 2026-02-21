@@ -100,7 +100,7 @@ namespace ServicePlanner.Services
         public async Task<DateTime?> GetLastPlayedDateAsync(string songName)
         {
             var lastService = await _context.ServiceEventInstances
-                .Where(sei => sei.SongTitle == songName)
+                .Where(sei => sei.Song != null && sei.Song.SongName == songName)
                 .Join(_context.Services, sei => sei.ServiceId, s => s.Id, (sei, s) => s)
                 .OrderByDescending(s => s.ServiceDate)
                 .FirstOrDefaultAsync();
@@ -111,11 +111,11 @@ namespace ServicePlanner.Services
         public async Task<Dictionary<string, DateTime?>> GetLastPlayedDatesAsync()
         {
             var songPlayDates = await _context.ServiceEventInstances
-                .Where(sei => !string.IsNullOrEmpty(sei.SongTitle))
-                .Join(_context.Services, sei => sei.ServiceId, s => s.Id, (sei, s) => new { sei.SongTitle, s.ServiceDate })
-                .GroupBy(x => x.SongTitle)
-                .Select(g => new { SongTitle = g.Key, LastPlayed = g.Max(x => x.ServiceDate) })
-                .ToDictionaryAsync(x => x.SongTitle!, x => (DateTime?)x.LastPlayed);
+                .Where(sei => sei.Song != null && !string.IsNullOrEmpty(sei.Song.SongName))
+                .Join(_context.Services, sei => sei.ServiceId, s => s.Id, (sei, s) => new { SongName = sei.Song.SongName, s.ServiceDate })
+                .GroupBy(x => x.SongName)
+                .Select(g => new { SongName = g.Key, LastPlayed = g.Max(x => x.ServiceDate) })
+                .ToDictionaryAsync(x => x.SongName!, x => (DateTime?)x.LastPlayed);
 
             return songPlayDates;
         }

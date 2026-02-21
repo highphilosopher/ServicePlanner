@@ -131,6 +131,19 @@ The GitHub Action will:
 | `ASPNETCORE_ENVIRONMENT` | ASP.NET Core environment | `Production` |
 | `ASPNETCORE_URLS` | URLs the app listens on | `http://+:8080` |
 
+### Database Sync (Development)
+
+To pull the latest SQLite snapshot from Azure Files when the app starts, configure:
+
+| Variable | Description |
+|----------|-------------|
+| `DatabaseSync__Enabled` | Enable/disable sync (default `true` in development config) |
+| `DatabaseSync__StorageAccountName` | Azure Storage account name |
+| `DatabaseSync__StorageAccountKey` | Azure Storage account key |
+| `DatabaseSync__ShareName` | Azure Files share name |
+| `DatabaseSync__FilePath` | Path to the database file within the share |
+| `DatabaseSync__RefreshIntervalHours` | Skip download if local DB is newer than this many hours (default `24`) |
+
 ## Local Development
 
 ### Prerequisites

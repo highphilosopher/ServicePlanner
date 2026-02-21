@@ -18,7 +18,8 @@ namespace ServicePlanner.Models
         public int ServiceEventId { get; set; }
         public ServiceEvent? ServiceEvent { get; set; }
         public string? PersonName { get; set; }
-        public string? SongTitle { get; set; }
+        public int? SongId { get; set; }
+        public Song? Song { get; set; }
         public string? Notes { get; set; }
     }
 }

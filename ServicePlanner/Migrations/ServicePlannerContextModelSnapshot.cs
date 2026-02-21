@@ -220,15 +220,16 @@ namespace ServicePlanner.Migrations
                     b.Property<int>("ServiceId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("SongTitle")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                    b.Property<int?>("SongId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ServiceEventId");
 
                     b.HasIndex("ServiceId");
+
+                    b.HasIndex("SongId");
 
                     b.ToTable("ServiceEventInstances");
                 });
@@ -500,7 +501,14 @@ namespace ServicePlanner.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ServicePlanner.Models.Song", "Song")
+                        .WithMany()
+                        .HasForeignKey("SongId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("ServiceEvent");
+
+                    b.Navigation("Song");
                 });
 
             modelBuilder.Entity("ServicePlanner.Models.Service", b =>
