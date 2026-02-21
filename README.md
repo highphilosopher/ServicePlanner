@@ -36,8 +36,8 @@ docker run -p 8080:8080 -v $(pwd)/data:/app/data serviceplanner:latest
 Access the application at `http://localhost:8080`
 
 **Default Admin Credentials:**
-- Email: `admin@serviceplanner.com`
-- Password: `Admin123!`
+- Email: `admin@serviceplanner.local`
+- Password: `TempPassword123!`
 
 ## Docker Deployment Options
 
