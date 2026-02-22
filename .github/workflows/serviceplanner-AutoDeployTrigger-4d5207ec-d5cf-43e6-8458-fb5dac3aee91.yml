@@ -8,7 +8,7 @@ on:
       [ main ]
     paths:
     - '**'
-    - '.github/workflows/serviceplanner-AutoDeployTrigger-00335218-b430-4922-8ca2-addec5b57b6f.yml'
+    - '.github/workflows/serviceplanner-AutoDeployTrigger-4d5207ec-d5cf-43e6-8458-fb5dac3aee91.yml'
 
   # Allow manual trigger 
   workflow_dispatch:      
