@@ -65,6 +65,7 @@ else if (service != null)
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
+                                        <th>Event Name</th>
                                         <th>Event Type</th>
                                         <th>Person</th>
                                         <th>Song</th>
@@ -76,6 +77,7 @@ else if (service != null)
                                     {
                                         var instance = service.EventInstances[i];
                                         <tr>
+                                            <td>@FormatEventTitle(instance)</td>
                                             <td>@instance.ServiceEvent?.Type</td>
                                             <td>
                                                 <input type="text" class="form-control form-control-sm"
@@ -252,6 +254,16 @@ else if (service != null)
     private string FormatSongOption(Song song)
     {
         return $"{song.SongName} - {song.Artist}";
+    }
+
+    private string FormatEventTitle(ServiceEventInstance instance)
+    {
+        if (!string.IsNullOrWhiteSpace(instance.ServiceEvent?.Title))
+        {
+            return instance.ServiceEvent.Title;
+        }
+
+        return instance.ServiceEvent?.Type.ToString() ?? string.Empty;
     }
 
     private static DateTime GetNextSunday(DateTime fromDate)
