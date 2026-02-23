@@ -205,6 +205,11 @@ else if (service != null)
 
     private async Task OnTemplateChanged()
     {
+        if (service == null)
+        {
+            return;
+        }
+
         if (service.TemplateId > 0)
         {
             var template = await TemplateService.GetTemplateByIdAsync(service.TemplateId);
@@ -238,6 +243,11 @@ else if (service != null)
 
     private void UpdateAutoName()
     {
+        if (service == null)
+        {
+            return;
+        }
+
         if (service.Template == null || string.IsNullOrWhiteSpace(service.Template.Name))
         {
             return;

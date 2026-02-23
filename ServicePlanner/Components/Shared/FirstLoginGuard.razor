@@ -9,7 +9,6 @@
     [Parameter] public RenderFragment ChildContent { get; set; } = default!;
     [Parameter] public RouteData RouteData { get; set; } = default!;
 
-    private bool isFirstLoginRequired = false;
     private bool isCheckingFirstLogin = true;
 
     protected override async Task OnInitializedAsync()
@@ -30,8 +29,6 @@ private async Task CheckFirstLoginStatus()
                 var user = await UserService.GetUserByEmailAsync(email);
                 if (user != null && user.IsFirstLogin)
                 {
-                    isFirstLoginRequired = true;
-                    
                     // Redirect first-time users to the new FirstTimeLogin page
                     Navigation.NavigateTo($"/first-time-login");
                     return;

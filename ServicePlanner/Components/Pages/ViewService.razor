@@ -7,7 +7,7 @@
 @inject SongService SongService
 @inject IJSRuntime JS
 
-<h3 class="mb-4">@service.Name</h3>
+<h3 class="mb-4">@(service?.Name ?? "Service")</h3>
 
 @if (loading)
 {
@@ -99,13 +99,13 @@ else if (service != null)
                 <div class="card-body">
                     <div class="mb-3">
                         <strong>Total Events:</strong>
-                        <span class="badge bg-primary ms-2">@service.EventInstances.Count</span>
+                        <span class="badge bg-primary ms-2">@CurrentService.EventInstances.Count</span>
                     </div>
 
                     @{
-                        var eventTypeCounts = service.EventInstances
+                        var eventTypeCounts = CurrentService.EventInstances
                             .Where(e => e.ServiceEvent != null)
-                            .GroupBy(e => e.ServiceEvent.Type)
+                            .GroupBy(e => e.ServiceEvent!.Type)
                             .Select(g => new { Type = g.Key, Count = g.Count() });
 
                         foreach (var count in eventTypeCounts)
@@ -140,6 +140,7 @@ else if (service != null)
     private Service? service;
     private List<Song>? songs;
     private bool loading = true;
+    private Service CurrentService => service!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -188,7 +189,7 @@ else if (service != null)
 
         var songLookup = songs?.ToDictionary(
             s => s.Id,
-            s => new { s.SongName, s.Key }) ?? new Dictionary<int, dynamic>();
+            s => new SongInfo(s.SongName, s.Key)) ?? new Dictionary<int, SongInfo>();
         var builder = new System.Text.StringBuilder();
 
         builder.AppendLine(service.Name);
@@ -238,4 +239,6 @@ else if (service != null)
 
         return builder.ToString();
     }
+
+    private sealed record SongInfo(string SongName, string? Key);
 }

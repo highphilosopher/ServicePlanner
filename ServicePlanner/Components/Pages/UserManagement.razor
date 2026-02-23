@@ -151,10 +151,11 @@
         await LoadUsers();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
         // Only reload users on first render or when explicitly needed
         // Removed automatic reload to prevent infinite loops
+        return Task.CompletedTask;
     }
 
     private async Task LoadUsers()

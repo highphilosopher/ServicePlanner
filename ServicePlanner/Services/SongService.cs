@@ -112,7 +112,7 @@ namespace ServicePlanner.Services
         {
             var songPlayDates = await _context.ServiceEventInstances
                 .Where(sei => sei.Song != null && !string.IsNullOrEmpty(sei.Song.SongName))
-                .Join(_context.Services, sei => sei.ServiceId, s => s.Id, (sei, s) => new { SongName = sei.Song.SongName, s.ServiceDate })
+                .Join(_context.Services, sei => sei.ServiceId, s => s.Id, (sei, s) => new { SongName = sei.Song!.SongName, s.ServiceDate })
                 .GroupBy(x => x.SongName)
                 .Select(g => new { SongName = g.Key, LastPlayed = g.Max(x => x.ServiceDate) })
                 .ToDictionaryAsync(x => x.SongName!, x => (DateTime?)x.LastPlayed);
