@@ -1,0 +1,12 @@
+name: Docker Hub Login Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  login-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker Hub login
+        run: |
+          echo "${{ secrets.SERVICEPLANNER_REGISTRY_PASSWORD }}" | docker login -u "${{ secrets.SERVICEPLANNER_REGISTRY_USERNAME }}" --password-stdin
