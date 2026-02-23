@@ -37,10 +37,11 @@ jobs:
           appSourcePath: ${{ github.workspace }}
           dockerfilePath: Dockerfile
           registryUrl: docker.io
-          registryUsername: ${{ secrets.SERVICEPLANNER_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.SERVICEPLANNER_REGISTRY_PASSWORD }}
+          registryUsername: ${{ secrets.DOCKERHUB_USERNAME }}
+          registryPassword: ${{ secrets.DOCKERHUB_TOKEN }}
           containerAppName: serviceplanner
           resourceGroup: ServicePlanner-RG
           imageToBuild: highphilosopher/serviceplanner:${{ github.sha }}
+
 
 
