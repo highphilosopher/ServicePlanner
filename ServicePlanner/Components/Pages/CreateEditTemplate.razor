@@ -167,7 +167,7 @@
             Type = EventType.Speaker,
             Title = "",
             Order = newOrder,
-            TemplateId = template.Id
+            TemplateId = IsEdit ? template.Id : 0
         });
     }
 
@@ -191,7 +191,30 @@
     {
         if (string.IsNullOrWhiteSpace(template.Name))
         {
+            // In a real application, you would show an error message to the user
             return;
+        }
+
+        // Ensure template has at least one event
+        if (!template.Events.Any())
+        {
+            // Add a default event if none exist
+            template.Events.Add(new ServiceEvent
+            {
+                Type = EventType.Speaker,
+                Title = "Default Event",
+                Order = 1,
+                TemplateId = IsEdit ? template.Id : 0
+            });
+        }
+
+        // Validate that events have proper titles
+        foreach (var evt in template.Events)
+        {
+            if (string.IsNullOrWhiteSpace(evt.Title))
+            {
+                evt.Title = "Untitled Event";
+            }
         }
 
         try
@@ -209,8 +232,9 @@
         }
         catch (Exception ex)
         {
-            // In a real application, you would handle this error appropriately
+            // In a real application, you would show an error message to the user
             Console.WriteLine($"Error saving template: {ex.Message}");
+            // Optionally display error to user in UI
         }
     }
 

@@ -47,7 +47,11 @@ namespace ServicePlanner.Services
             
             foreach (var evt in template.Events)
             {
-                evt.TemplateId = template.Id;
+                // Only set TemplateId if it's not already set (for new templates, this will be 0)
+                if (evt.TemplateId == 0)
+                {
+                    evt.TemplateId = template.Id;
+                }
             }
             
             _context.ServiceTemplates.Add(template);
@@ -86,7 +90,11 @@ namespace ServicePlanner.Services
                     existingTemplate.Events = template.Events;
                     foreach (var evt in existingTemplate.Events)
                     {
-                        evt.TemplateId = template.Id;
+                        // Only set TemplateId if it's not already set
+                        if (evt.TemplateId == 0)
+                        {
+                            evt.TemplateId = template.Id;
+                        }
                     }
                 }
                 

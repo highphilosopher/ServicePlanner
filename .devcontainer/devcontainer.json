@@ -1,0 +1,39 @@
+{
+  "name": "ServicePlanner",
+  "image": "mcr.microsoft.com/dotnet/aspnet:9.0",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-json",
+        "ms-vscode.vscode-eslint"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "DOTNET_ROOT": "/usr/share/dotnet"
+  },
+  "postCreateCommand": "dotnet restore",
+  "portsForwarded": [
+    5000,
+    5001
+  ],
+  "runArgs": [
+    "--network=host"
+  ],
+  "mounts": [
+    {
+      "type": "volume",
+      "source": "nuget",
+      "target": "/home/vscode/.nuget/packages"
+    }
+  ]
+}
