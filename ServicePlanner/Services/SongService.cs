@@ -231,8 +231,36 @@ namespace ServicePlanner.Services
                 // Ensure we have at least a song name
                 if (!string.IsNullOrWhiteSpace(song.SongName))
                 {
-                    _context.Songs.Add(song);
-                    importedSongs.Add(song);
+                    var normalizedSongName = song.SongName.ToLowerInvariant();
+                    var normalizedArtist = (song.Artist ?? string.Empty).ToLowerInvariant();
+
+                    var existingSong = await _context.Songs
+                        .FirstOrDefaultAsync(s =>
+                            (s.SongName ?? string.Empty).ToLower() == normalizedSongName &&
+                            (s.Artist ?? string.Empty).ToLower() == normalizedArtist);
+
+                    if (existingSong == null)
+                    {
+                        _context.Songs.Add(song);
+                        importedSongs.Add(song);
+                    }
+                    else
+                    {
+                        existingSong.SongName = song.SongName;
+                        existingSong.Name = song.Name;
+                        existingSong.Key = song.Key;
+                        existingSong.SongSelectId = song.SongSelectId;
+                        existingSong.Seasonal = song.Seasonal;
+                        existingSong.Speed = song.Speed;
+                        existingSong.Publisher = song.Publisher;
+                        existingSong.Artist = song.Artist;
+                        existingSong.Category = song.Category;
+                        existingSong.Notes = song.Notes;
+                        existingSong.Disabled = song.Disabled;
+
+                        _context.Songs.Update(existingSong);
+                        importedSongs.Add(existingSong);
+                    }
                 }
             }
 
