@@ -2,6 +2,7 @@
 @using ServicePlanner.Models
 @using ServicePlanner.Services
 @using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject ServiceService ServiceService
 @inject SongService SongService
@@ -125,9 +126,11 @@ else if (service != null)
         <button type="button" class="btn btn-outline-primary" @onclick="CopyToClipboard">
             <i class="bi bi-clipboard"></i> Copy for Text
         </button>
-        <button type="button" class="btn btn-primary" @onclick="EditService">
-            <i class="bi bi-pencil"></i> Edit Service
-        </button>
+        <AuthorizeView>
+            <button type="button" class="btn btn-primary" @onclick="EditService">
+                <i class="bi bi-pencil"></i> Edit Service
+            </button>
+        </AuthorizeView>
         <button type="button" class="btn btn-secondary" @onclick="BackToList">
             <i class="bi bi-arrow-left"></i> Back to Services
         </button>
