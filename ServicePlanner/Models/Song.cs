@@ -8,11 +8,10 @@ namespace ServicePlanner.Models
         [Key]
         public int Id { get; set; }
         
-        [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty; // Song Name
         
-        [Required]
+        [Required(ErrorMessage = "Song Name is required")]
         [StringLength(100)]
         public string SongName { get; set; } = string.Empty; // Alternative Song Name property
         
