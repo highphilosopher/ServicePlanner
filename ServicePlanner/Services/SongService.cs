@@ -54,6 +54,8 @@ namespace ServicePlanner.Services
 
         public async Task<Song> CreateSongAsync(Song song)
         {
+            // Keep legacy Name column aligned with SongName.
+            song.Name = song.SongName;
             song.CreatedDate = DateTime.Now;
             _context.Songs.Add(song);
             await _context.SaveChangesAsync();
@@ -62,6 +64,8 @@ namespace ServicePlanner.Services
 
         public async Task<Song> UpdateSongAsync(Song song)
         {
+            // Keep legacy Name column aligned with SongName.
+            song.Name = song.SongName;
             _context.Songs.Update(song);
             await _context.SaveChangesAsync();
             return song;
