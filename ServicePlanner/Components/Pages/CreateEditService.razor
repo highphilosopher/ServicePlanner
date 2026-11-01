@@ -95,7 +95,7 @@ else if (service != null)
                                                             // but allow the current instance's selection to remain available in its own dropdown.
                                                             var filteredSongs = songs
                                                                 .Where(s =>
-                                                                    (service.IsSeasonal ? s.Seasonal : !s.Seasonal) &&
+                                                                    (service.IsSeasonal || !s.Seasonal) &&
                                                                     !service.EventInstances.Any(ei =>
                                                                         ei != instance &&
                                                                         ei.SongId.HasValue &&
